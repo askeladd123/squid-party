@@ -27,3 +27,11 @@ Tenkte at det skulle være som i Squid-Game, at man skal hoppe over en bro, ogs�
   
  #### Endgame
  Arena fight, pickups som koster mye penger i starten.
+ 
+ # stil / code standard
+ kode står på engelsk (så slipper man å oversette "update", "init" o.l.)
+ kommentarer står på norsk (lettere å lese og skrive)
+ navn følger Rust code standard: 
+ * variabler, funksjoner og moduler er 'snake_case',
+ * typer er 'UpperCamelCase'
+ 
