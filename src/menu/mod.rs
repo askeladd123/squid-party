@@ -2,6 +2,18 @@ use macroquad::prelude::*;
 use crate::common;
 use crate::common::input;
 
+pub struct Data{
+    selected_button: Button,
+}
+
+impl Data{
+    pub fn new()->Data{
+        Data{
+            selected_button: Button::Start,
+        }
+    }
+}
+
 pub fn tick(data: &mut Data, common: &mut common::Data){
     logic(&mut data.selected_button, &mut common.mouse_and_keys, &mut common.mode);
     graphics(data.selected_button);
@@ -62,16 +74,4 @@ fn graphics(selected_button: Button){
 #[derive(Copy, Clone)]
 enum Button{
     Start, Options, Quit
-}
-
-pub struct Data{
-    selected_button: Button,
-}
-
-impl Data{
-    pub fn new()->Data{
-        Data{
-            selected_button: Button::Start,
-        }
-    }
 }
