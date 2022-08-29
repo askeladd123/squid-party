@@ -63,7 +63,7 @@ fn graphics(
     
     for player in players{
         draw_texture(
-            files.sig,
+            files.ask,
             player.position.x,
             player.position.y,
             WHITE,
