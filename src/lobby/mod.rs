@@ -22,15 +22,16 @@ pub fn tick(data: &mut Data, common: &mut common::Data, players: &mut Vec<Player
 }
 
 /// Teppet som Sigurd gjemmer seg bak
-const TEPPE: f32 = 300.0;
+const TEPPE: f32 = 1000.0;
 
 
 fn logic(common: &mut common::Data, players: &mut Vec<Player>){
-    let player = &mut (*players)[common.player_id];
 
-    // Ser om spilleren sin posisjon er støre enn teppet sitt
+
+    // Ser om spilleren sin posisjon er s
+    // tøre enn teppet sitt
     // Hvis den er det vil common:mode bli endret til platform1
-    if TEPPE < player.position.x{
+    if TEPPE < players[0].position.x{
         common.mode = common::Mode::Platform1;
         return;
     }
@@ -39,40 +40,48 @@ fn logic(common: &mut common::Data, players: &mut Vec<Player>){
     // x pos STOP
     // y pos -
     if is_key_pressed(KeyCode::Up){
-        player.speed.x = 0.0;
-        player.speed.y = -common.settings.player_speed;
+        players[0].speed.x = 0.0;
+        players[0].speed.y = -common.settings.player_speed;
     }
 
     // Trykkes NED knappen vil x fart stoppe og spiller y pos gå TIL NEDOVER  i skjermen.
     // x pos STOP
     // y pos +
     if is_key_pressed(KeyCode::Down){
-        player.speed.x = 0.0;
-        player.speed.y = common.settings.player_speed;
+        players[0].speed.x = 0.0;
+        players[0].speed.y = common.settings.player_speed;
     }
 
     // Trykkes VENSTRE knappen vil y fart stoppe og spiller x pos gå TIL VENSTRE i skjermen.
     // x pos -
     // y pos STOP
     if is_key_pressed(KeyCode::Left){
-        player.speed.x = -common.settings.player_speed;
-        player.speed.y = 0.0;
+       players[0].speed.x = -common.settings.player_speed;
+       players[0].speed.y = 0.0;
     }
 
     // Trykkes HØYRE knappen vil y fart stoppe og spiller x pos gå TIL HØYRE i skjermen.
     // x pos +
     // y pos STOP
     if is_key_pressed(KeyCode::Right){
-        player.speed.x = common.settings.player_speed;
-        player.speed.y = 0.0;
+        players[0].speed.x = common.settings.player_speed;
+        players[0].speed.y = 0.0;
     }
-    
-    for player in players{
-        // For hver loop vil player.speed legges til i posisjonen og gjøre at spilleren
-        // flytter på seg
-        player.position.x += player.speed.x;
-        player.position.y += player.speed.y;
-    }
+
+
+    players[0].position.x += players[0].speed.x;
+    players[0].position.y += players[0].speed.y;
+    players[1].position.x += players[0].speed.x *2.2;
+    players[1].position.y += players[0].speed.y *2.2;
+    players[2].position.x += players[0].speed.x *1.7;
+    players[2].position.y += players[0].speed.y *1.7;
+    players[3].position.x += players[0].speed.x * 1.2;
+    players[3].position.y += players[0].speed.y * 1.2;
+    players[4].position.x += players[0].speed.x * 0.6;
+    players[4].position.y += players[0].speed.y * 0.6;
+
+
+
 }
 
 fn graphics(
@@ -81,16 +90,49 @@ fn graphics(
     players: &mut Vec<Player>,
 ){
     clear_background(BLACK);
-    
-    for player in players{
+
+
         // Draw_tecture(Hvordan det så ut, x pos, y pos, farge)
         draw_texture(
-            files.ask,
-            player.position.x,
-            player.position.y,
+
+            files.knut,
+            players[1].position.x,
+            players[1].position.y,
             WHITE,
+
+
+
         );
-    }
+    draw_texture(
+
+        files.skag,
+        players[2].position.x,
+        players[2].position.y,
+        WHITE,
+
+
+
+    );
+    draw_texture(
+
+        files.ask,
+        players[3].position.x,
+        players[3].position.y,
+        WHITE,
+
+
+
+    );
+    draw_texture(
+
+        files.sig,
+        players[4].position.x,
+        players[4].position.y,
+        WHITE,
+
+
+
+    );
     // Tegner teppet på skjermen
-    draw_rectangle(TEPPE, 0.0, 400.0, 800.0, DARKGRAY);
+    draw_rectangle(TEPPE, 0.0, 400.0, 800.0, DARKBLUE);
 }

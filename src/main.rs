@@ -19,7 +19,30 @@ async fn main() {
         Player{
             position: Vector{x:100.0, y: 100.0},
             speed: Vector{x:0.0, y:0.0},
-        }];
+            acceleration: 1.2
+        },
+        Player{
+        position: Vector{x:100.0, y: 100.0},
+        speed: Vector{x:0.0, y:0.0},
+        acceleration: 1.0
+        },
+        Player {
+            position: Vector { x: 100.0, y: 100.0 },
+            speed: Vector { x: 0.0, y: 0.0 },
+            acceleration: 0.8
+        },
+        Player {
+            position: Vector { x: 100.0, y: 100.0 },
+            speed: Vector { x: 0.0, y: 0.0 },
+            acceleration: 0.6
+        },
+        Player {
+            position: Vector { x: 100.0, y: 100.0 },
+            speed: Vector { x: 0.0, y: 0.0 },
+            acceleration: 0.4
+        },
+
+    ];
     
     loop {
         match common_data.mode{
