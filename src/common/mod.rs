@@ -30,6 +30,7 @@ impl Data {
 }
 
 #[derive(PartialEq)]
+// Denne enum forteller hvilket vindu man er i akkurat nå
 pub enum Mode {
-    Menu, Lobby, Platform1, Quit
+    Menu, Lobby, Platform1, Quit, Platform2
 }
