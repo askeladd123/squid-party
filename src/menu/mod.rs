@@ -2,7 +2,7 @@ use macroquad::prelude::*;
 use crate::common;
 use crate::common::input;
 
-// Oppretter public struct som heter Data
+
 pub struct Data{
     selected_button: Button,
 }
@@ -10,19 +10,26 @@ pub struct Data{
 impl Data{
     pub fn new()->Data{
         Data{
-            // Forteller hvor den selekterte knapen starter.
+            // Forteller hvor den selekterte knappen starter.
             selected_button: Button::Start,
         }
     }
 }
 
-pub fn tick(data: &mut Data, common: &mut common::Data){
+pub fn tick(
+    data: &mut Data,
+    common: &mut common::Data){
+    // Gir Logic funksjonen informasjon og knappen den er på, om noen kapper blir trykket og
+    // hvilket vindu man er i nå
     logic(&mut data.selected_button, &mut common.mouse_and_keys, &mut common.mode);
-    // Gir Graphics funksjonen informasjon om hvilken knapp som er trykket
+    // Gir Graphics funksjonen informasjon om hvilken knapp man holder over
     graphics(data.selected_button);
 }
 
-fn logic(selected_button: &mut Button, mouse_and_keys: &mut input::MouseAndKeys, mode: &mut common::Mode){
+fn logic(
+    selected_button: &mut Button,
+    mouse_and_keys: &mut input::MouseAndKeys,
+    mode: &mut common::Mode){
     
     if is_key_pressed(KeyCode::Enter){
         match selected_button {

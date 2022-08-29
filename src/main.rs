@@ -51,6 +51,14 @@ async fn main() {
                     next_frame().await;
                 }
             },
+            Mode::Platform2=> {
+                let mut lobby_data = lobby::Data::new();
+
+                while common_data.mode == Mode::Platform2{
+                    lobby::tick(&mut lobby_data, &mut common_data, &mut players);
+                    next_frame().await;
+                }
+            },
     
             Mode::Quit => break,
         }
