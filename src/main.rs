@@ -4,6 +4,7 @@ mod player;
 mod maths;
 mod platform1;
 mod common;
+mod hjornefotball;
 
 use macroquad::prelude::*;
 use common::input;
@@ -74,11 +75,11 @@ async fn main() {
                     next_frame().await;
                 }
             },
-            Mode::Platform2=> {
-                let mut lobby_data = lobby::Data::new();
+            Mode::Hjornefotball=> {
+                //let mut hjornefotball_data = hjornefotball::Data::new();
 
-                while common_data.mode == Mode::Platform2{
-                    lobby::tick(&mut lobby_data, &mut common_data, &mut players);
+                while common_data.mode == Mode::Hjornefotball{
+                    hjornefotball::tick();
                     next_frame().await;
                 }
             },

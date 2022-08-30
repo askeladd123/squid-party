@@ -36,6 +36,13 @@ fn logic(common: &mut common::Data, players: &mut Vec<Player>){
         return;
     }
 
+    if 30.0 > players[0].position.x{
+        common.mode = common::Mode::Hjornefotball;
+        return;
+    }
+
+
+
     // Trykkes OPP knappen vil x fart stoppe og spiller y pos gå TIL OPPOVER i skjermen.
     // x pos STOP
     // y pos -
