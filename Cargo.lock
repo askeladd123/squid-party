@@ -240,6 +240,7 @@ name = "noname"
 version = "0.1.0"
 dependencies = [
  "macroquad",
+ "physics",
 ]
 
 [[package]]
@@ -300,6 +301,10 @@ checksum = "13e571c3517af9e1729d4c63571a27edd660ade0667973bfc74a67c660c2b651"
 dependencies = [
  "byteorder",
 ]
+
+[[package]]
+name = "physics"
+version = "0.1.0"
 
 [[package]]
 name = "png"

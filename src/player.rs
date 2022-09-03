@@ -1,8 +1,6 @@
-use crate::maths;
-
 pub struct Player{
-    pub position: maths::Vector,
-    pub speed: maths::Vector,
+    pub position: physics::Vector2d,
+    pub speed: physics::Vector2d,
     pub acceleration: f32,
 
 
