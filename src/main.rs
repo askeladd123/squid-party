@@ -13,6 +13,12 @@ use crate::common::Mode;
 #[macroquad::main("BetaDev")]
 async fn main() {
     
+    use physics::*;
+    println!("intersection: {}", intersection(
+        Shape::AABB(AABB{center:Vector2d{x:0.0, y:0.0}, rx:100.0, ry:100.0}),
+        Shape::AABB(AABB{center:Vector2d{x:10.0, y:10.0}, rx:100.0, ry:100.0}),
+    ));
+    
     let mut common_data = common::Data::new(common::files::Data::new().await);
     let mut players: Vec<Player> = vec![
         Player{

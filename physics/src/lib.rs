@@ -5,9 +5,21 @@ pub struct Vector2d{
     pub x:f32,
     pub y:f32
 }
-pub struct Circle{center:Vector2d, r:f32}
-pub struct AABB{center:Vector2d, rx:f32, ry:f32}
-pub struct Rect{center:Vector2d, rx:f32, ry:f32, a:f32}
+pub struct Circle{
+    pub center:Vector2d,
+    pub r:f32
+}
+pub struct AABB{
+    pub center:Vector2d,
+    pub rx:f32,
+    pub ry:f32
+}
+pub struct Rect{
+    pub center:Vector2d,
+    pub rx:f32,
+    pub ry:f32,
+    pub a:f32
+}
 
 pub enum Shape{
     Point(Vector2d),
@@ -28,7 +40,7 @@ pub fn intersection(a:Shape, b:Shape)->bool{
         }
         (Point(p), AABB(a))|
         (AABB(a), Point(p))=>{
-            todo!();
+            // todo!();
         }
         (Point(p), Rect(r))|
         (Rect(r), Point(p))=>{
