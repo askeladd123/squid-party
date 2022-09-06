@@ -80,10 +80,10 @@ async fn main() {
                 }
             },
             Mode::Hjornefotball=> {
-                //let mut hjornefotball_data = hjornefotball::Data::new();
+                let mut hjornefotball_data = hjornefotball::Data::new();
 
                 while common_data.mode == Mode::Hjornefotball{
-                    hjornefotball::tick();
+                    hjornefotball::tick(&mut hjornefotball_data, &mut common_data);
                     next_frame().await;
                 }
             },
