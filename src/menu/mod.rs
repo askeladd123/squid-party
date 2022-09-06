@@ -68,10 +68,12 @@ pub fn tick(
 
     draw_circle(c.center.x, c.center.y, c.r,
                 if intersection(Shape::AABB(p), Shape::Circle(c)) {WHITE} else {RED});
-
+    /*
     draw_circle(q.center.x, q.center.y, q.r,
                 if intersection(Shape::Circle(q), Shape::Circle(c)) {BLUE} else {GREEN});
 
+
+     */
 
 }
 

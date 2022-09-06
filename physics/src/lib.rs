@@ -44,18 +44,22 @@ pub fn intersection(a:Shape, b:Shape)->bool{
         }
         (Point(p), Circle(c))|
         (Circle(c), Point(p))=>{
-            todo!();
+            return if
+            f32::sqrt((c.center.x - p.x) * (c.center.x - p.x)
+                + (c.center.y - p.y) * (c.center.y - p.y)) < c.r
+            {
+                true
+            } else { false }
         }
         (Point(p), AABB(a))|
         (AABB(a), Point(p))=>{
-            if
-                p.x > a.center.x - a.rx &&
+            return if
+            p.x > a.center.x - a.rx &&
                 p.x < a.center.x + a.rx &&
                 p.y < a.center.y + a.ry &&
-                p.y > a.center.y - a.ry{
-                return true;
-            }
-            else { return false; }
+                p.y > a.center.y - a.ry {
+                true
+            } else { false }
         }
         (Point(p), Rect(r))|
         (Rect(r), Point(p))=>{
@@ -148,7 +152,6 @@ pub fn intersection(a:Shape, b:Shape)->bool{
             todo!();
         }
         (Rect(a), Rect(b))=>{
-            todo!();
         }
     }
     panic!("missing implementation in function");
