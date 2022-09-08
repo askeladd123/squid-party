@@ -138,49 +138,59 @@ pub async fn start_server(){
             }
         }).unwrap();
         
-        let mut connections = Vec::<Connection>::new();
-        let mut player_inputs = Vec::<PlayerInput>::new();
-        
-        let mut mode = Mode::Lobby;
-        loop{
-            
-            // oppdater data til api-objektet "player_inputs:PlayerInput"
-            for (connection, player) in
-            connections.iter_mut()
-                .zip(player_inputs.iter_mut()){
-                player.events.clear();
-                
-                while let Some(t) = connection.receive(){
-                    player.events.push(t);
-                }
-            }
+        let mut server_data = ServerData{
+            connections: Vec::<Connection>::new(),
+            player_inputs: Vec::<PlayerInput>::new(),
+            r_stream,
+        };
 
-            // kanskje listener har funnet en ny connection
-            if let Ok(t) = r_stream.try_recv(){
-                connections.push(Connection::new(t));
-                player_inputs.push(PlayerInput::new());
-            }
-            
-            match mode{
-                Mode::Lobby => {
-                
-                }
-                Mode::Platform1 => {
-                
-                }
-                Mode::Quit => {
-                
-                }
-                Mode::Hjornefotball => {
-                
-                }
-            }
+        server_loop(server_data);
 
-            next_frame().await;
-        }
     }).unwrap();
 }
 
+
+// placeholder
+fn server_loop(server_data: ServerData)->ServerEvent{
+
+    // kjør matching med gamemodes, route data fra forskjellige game modes
+    server_data.update_and_get();
+}
+
+struct ServerData{
+    connections:Vec<Connection>,
+    player_inputs:Vec<PlayerInput>,
+    r_stream: mpsc::Receiver<TcpStream>,
+}
+
+impl ServerData {
+    pub fn update_and_get(&mut self)->&Vec<PlayerInput>{
+
+        // oppdater data til api-objektet "player_inputs:PlayerInput"
+        for (connection, player) in
+        self.connections.iter_mut()
+            .zip(self.player_inputs.iter_mut()){
+            player.events.clear();
+
+            while let Some(t) = connection.receive(){
+                player.events.push(t);
+            }
+        }
+
+        // kanskje listener har funnet en ny connection
+        if let Ok(t) = r_stream.try_recv(){
+            connections.push(Connection::new(t));
+            player_inputs.push(PlayerInput::new());
+        }
+
+        self.player_inputs
+    }
+}
+
+enum ServerEvent{
+    Lobby(_),
+    Platform1(_),
+}
 
 struct Connection{
     thread_event: JoinHandle<()>,
