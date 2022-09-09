@@ -3,5 +3,4 @@ pub struct Player{
     pub speed: physics::Vector2d,
     pub acceleration: f32,
 
-
 }

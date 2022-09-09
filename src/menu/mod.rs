@@ -1,4 +1,5 @@
 use macroquad::prelude::*;
+use physics::{AABB, intersection, Shape};
 use crate::common;
 use crate::common::input;
 
@@ -24,6 +25,56 @@ pub fn tick(
     logic(&mut data.selected_button, &mut common.mouse_and_keys, &mut common.mode);
     // Gir Graphics funksjonen informasjon om hvilken knapp man holder over
     graphics(data.selected_button);
+
+    let b = AABB{
+            center:
+            physics::Vector2d{
+                x:300.0,
+                y:300.5,
+            },
+            rx:50.1,
+            ry:40.1,
+        };
+    let p = AABB{
+        center:
+        physics::Vector2d{
+            x:300.0,
+            y:300.5,
+        },
+        rx:50.1,
+        ry:40.1,
+    };
+    let c = physics::Circle{
+        center:
+        physics::Vector2d {
+            x: mouse_position().0,
+            y: mouse_position().1,
+        },
+        r:55.0,
+    };
+    let q = physics::Circle{
+        center:
+        physics::Vector2d {
+            x: 500.0,
+            y: 500.0,
+        },
+        r:55.0,
+    };
+
+
+    draw_rectangle(b.center.x - b.rx, b.center.y - b.ry, b.rx * 2.0, b.ry * 2.0,
+    if intersection(Shape::AABB(b),
+                    Shape::Point(physics::Vector2d{x:mouse_position().0, y:mouse_position().1})){GREEN} else { BLUE });
+
+    draw_circle(c.center.x, c.center.y, c.r,
+                if intersection(Shape::AABB(p), Shape::Circle(c)) {WHITE} else {RED});
+    /*
+    draw_circle(q.center.x, q.center.y, q.r,
+                if intersection(Shape::Circle(q), Shape::Circle(c)) {BLUE} else {GREEN});
+
+
+     */
+
 }
 
 fn logic(

@@ -1,26 +1,34 @@
 extern crate core;
 use Shape::*;
 
+// selvforklarende, tar inn x og y posisjonen til noe på skjermen
+#[derive(Copy, Clone)]
 pub struct Vector2d{
     pub x:f32,
     pub y:f32
 }
+// class for alle sirkler, tar inn en vector2d + radiusen
+#[derive(Copy, Clone)]
 pub struct Circle{
     pub center:Vector2d,
     pub r:f32
 }
+#[derive(Copy, Clone)]
 pub struct AABB{
     pub center:Vector2d,
     pub rx:f32,
     pub ry:f32
 }
+//class for alle rektangler, tar inn en vector2d + hvor mye ut til siden / opp + vinkel
+#[derive(Copy, Clone)]
 pub struct Rect{
     pub center:Vector2d,
     pub rx:f32,
     pub ry:f32,
+    /** vinkel på boksen */
     pub a:f32
 }
-
+#[derive(Copy, Clone)]
 pub enum Shape{
     Point(Vector2d),
     Circle(Circle),
@@ -32,26 +40,101 @@ pub enum Shape{
 pub fn intersection(a:Shape, b:Shape)->bool{
     match (a, b) {
         (Point(a), Point(b))=>{
-            todo!();
+            todo!(); // betyr dette gjøres senere?
         }
         (Point(p), Circle(c))|
         (Circle(c), Point(p))=>{
-            todo!();
+            return if
+            f32::sqrt((c.center.x - p.x) * (c.center.x - p.x)
+                + (c.center.y - p.y) * (c.center.y - p.y)) < c.r
+            {
+                true
+            } else { false }
         }
         (Point(p), AABB(a))|
         (AABB(a), Point(p))=>{
-            // todo!();
+            return if
+            p.x > a.center.x - a.rx &&
+                p.x < a.center.x + a.rx &&
+                p.y < a.center.y + a.ry &&
+                p.y > a.center.y - a.ry {
+                true
+            } else { false }
         }
         (Point(p), Rect(r))|
         (Rect(r), Point(p))=>{
             todo!();
         }
         (Circle(a), Circle(b))=>{
-            todo!();
+            return if a.r + b.r > f32::sqrt((b.center.x - a.center.x) *  (b.center.x - a.center.x)+
+                (b.center.y - a.center.y) * (b.center.y - a.center.y)) {
+                true
+            } else { false }
         }
         (Circle(c), AABB(a))|
         (AABB(a), Circle(c))=>{
-            todo!();
+            if c.center.x <= a.center.x + a.rx && c.center.x >= a.center.x - a.rx{
+                return if c.center.y > a.center.y + a.ry {
+                    //nede i midten
+                    if a.ry + c.r > c.center.y - a.center.y {
+                        true
+                    } else { false }
+                } else {
+                    //oppe i midten
+                    if a.ry + c.r > a.center.y - c.center.y {
+                        true
+                    } else { false }
+                }
+            }
+            else if c.center.x <= a.center.x - a.rx{
+                //oppe i venstre hjørnet
+                return if c.center.y < a.center.y - a.ry {
+                    if f32::sqrt((a.rx * a.rx) + (a.ry * a.ry)) + c.r >
+                        f32::sqrt(((a.center.y - c.center.y) * (a.center.y - c.center.y) )+
+                            ((a.center.x - c.center.x) * (a.center.x - c.center.x)))
+                        {
+                        true
+                    } else { false }
+                } else if c.center.y >= (a.center.y + a.ry) {
+                    //nede til venstre
+                    if f32::sqrt((a.rx * a.rx) + (a.ry * a.ry)) + c.r >
+                        f32::sqrt(((c.center.y - a.center.y) * (c.center.y - a.center.y) )+
+                            ((a.center.x - c.center.x) * (a.center.x - c.center.x)))
+                    {
+                        true
+                    } else { false }
+                } else {
+                    //venstre midt
+                    if a.rx + c.r > a.center.x - c.center.x {
+                        true
+                    } else { false }
+                }
+            }
+            else if c.center.x >= a.center.x + a.rx{
+                return if c.center.y < a.center.y - a.ry {
+                    //oppe i høyre hjørnet
+                    if f32::sqrt((a.rx * a.rx) + (a.ry * a.ry)) + c.r >
+                        f32::sqrt(((a.center.y - c.center.y) * (a.center.y - c.center.y) )+
+                            ((c.center.x - a.center.x) * (c.center.x - a.center.x)))
+                    {
+                        true
+                    } else { false }
+                } else if c.center.y > (a.center.y + a.ry) {
+                    //nede til høyre
+                    if f32::sqrt((a.rx * a.rx) + (a.ry * a.ry)) + c.r >
+                        f32::sqrt(((c.center.y - a.center.y) * (c.center.y - a.center.y) )+
+                            ((c.center.x - a.center.x) * (c.center.x - a.center.x)))
+                    {
+                        true
+                    } else { false }
+                } else {
+                    //høyre i midten
+                    if a.rx + c.r > c.center.x - a.center.x {
+                        true
+                    } else { false }
+                }
+            }
+
         }
         (Circle(c),Rect(r))|
         (Rect(r), Circle(c))=>{
@@ -69,7 +152,6 @@ pub fn intersection(a:Shape, b:Shape)->bool{
             todo!();
         }
         (Rect(a), Rect(b))=>{
-            todo!();
         }
     }
     panic!("missing implementation in function");
@@ -146,6 +228,34 @@ mod tests{
                 AABB(AABB{center:Vector2d{x:100.0, y:100.0}, rx: 20.0, ry: 20.0 }),
                 AABB(AABB{center:Vector2d{x:110.0, y:90.0}, rx: 20.0, ry: 20.0})
             ), true);
+    }
+
+    #[test]
+    fn intersection_aabb_circle(){
+        assert_eq!(
+            intersection(
+                AABB(AABB{center:Vector2d{x:0.0, y:0.0}, rx: 10.0, ry: 10.0 }),
+                Circle(Circle{center:Vector2d{x:70.0, y:100.0}, r:12.0})
+            ), false);
+
+        assert_eq!(
+            intersection(
+                AABB(AABB{center:Vector2d{x:0.0, y:0.0}, rx: 10.0, ry: 10.0 }),
+                Circle(Circle{center:Vector2d{x:10.0, y:12.0}, r:12.0})
+            ), true);
+        /*
+        assert_eq!(
+            intersection(
+                AABB(AABB{center:Vector2d{x:100.0, y:100.0}, rx: 10.0, ry: 10.0 }),
+                Circle(Circle{center:Vector2d{x:98.0, y:100.0}, r:12.0})
+            ), true);
+        assert_eq!(
+            intersection(
+                AABB(AABB{center:Vector2d{x:100.0, y:100.0}, rx: 20.0, ry: 20.0 }),
+                Circle(Circle{center:Vector2d{x:98.0, y:100.0}, r:12.0})
+            ), true);
+
+         */
     }
     
     #[test]
