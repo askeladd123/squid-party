@@ -352,3 +352,11 @@ pub enum Mode {
     Quit,
     Hjornefotball,
 }
+
+fn chain(a: &str, b: &str, c: &str)->String {
+    let mut abc = String::new();
+    abc.push_str(a);
+    abc.push_str(b);
+    abc.push_str(c);
+    abc
+}
