@@ -29,11 +29,11 @@ sending system: enum MetaData + struct UserData
 
 */
 
-pub async fn client_loop(){
+pub async fn start_client() {
     
     // connect to server
     let (sender, receiver) = mpsc::channel();
-    let waiter = thread::Builder::new().name("client, waiter".to_string()).spawn(||{
+    let waiter = thread::Builder::new().name("client, waiter".to_string()).spawn(|| {
         
         // TODO: riktig addresse
         let mut stream = TcpStream::connect("lol").unwrap();
@@ -41,175 +41,208 @@ pub async fn client_loop(){
     }).unwrap();
     
     // waiting for connection
-    while let Err(TryRecvError::Empty) = receiver.try_recv(){
+    while let Err(TryRecvError::Empty) = receiver.try_recv() {
         
         // TODO: wating screen
         println!("waiting for connection");
     }
     
     let mut stream = receiver.recv().unwrap();
-
+    
     waiter.join().unwrap();
     
     // connection threads
     println!("connection established, (hopefully)");
     
+    let mut stream_out = stream.try_clone().unwrap();
     let (s_out, r_out) = mpsc::channel();
-    thread::Builder::new().name("client, out".to_string()).spawn(move||{
-        
-        loop{
-            stream.write_all(r_out.recv().unwrap()).unwrap();
-        }
+    thread::Builder::new().name("client, out".to_string()).spawn(move || loop {
+    
+        let event: PlayerEvent = r_out.recv().unwrap();
+        stream_out.write_all(
+            &bincode::serialize(&event).unwrap()
+        ).unwrap();
+    
     }).unwrap();
     
+    let mut stream_in = stream.try_clone().unwrap();
     let (s_in, r_in) = mpsc::channel();
-    thread::Builder::new().name("client, in".to_string()).spawn(move||loop{
-    
+    thread::Builder::new().name("client, in".to_string()).spawn(move || {
+        
+        let mut buffer = [0u8;512];
+        stream_in.read(&mut buffer).unwrap();
+        
+        let event:ServerEvent = bincode::deserialize(&buffer).unwrap();
+        s_in.send(event).unwrap();
+        
     }).unwrap();
     
-    loop{
-        // get keys
-        {
-            // flere keys kan trykkes samtidig
-            while let Some(k) = get_last_key_pressed() {
+    let mut client_data = ClientData {
+        s_out,
+        r_in,
+    };
     
-                use PlayerEvent::*;
-                use Keys::*;
-                let event: PlayerEvent = match k{
-                    KeyCode::Up=>Pressed(Up),
-                    KeyCode::Down=>Pressed(Down),
-                    KeyCode::Right=>Pressed(Right),
-                    KeyCode::Left=>Pressed(Left),
-                    KeyCode::W=>Pressed(W),
-                    KeyCode::A=>Pressed(A),
-                    KeyCode::S=>Pressed(S),
-                    KeyCode::D=>Pressed(D),
-                    KeyCode::Space=>Pressed(Space),
-                    _=>PlayerEvent::Unknown,
-                };
-                
-                // fyller opp channel buffer med player events
-                s_out.send(&bincode::serialize(&event).unwrap()).unwrap();
-            }
-            
-            if is_mouse_button_pressed(MouseButton::Left){
-                s_out.send(
-                    &bincode::serialize(
-                        &PlayerEvent::MouseLeft(
-                            mouse_position().0,
-                            mouse_position().1)
-                    ).unwrap()
-                ).unwrap();
-            }
-    
-            if is_mouse_button_pressed(MouseButton::Right){
-                s_out.send(
-                    &bincode::serialize(
-                        &PlayerEvent::MouseRight(
-                            mouse_position().0,
-                            mouse_position().1)
-                    ).unwrap()
-                ).unwrap();
-            }
-        }
-        
-        next_frame().await;
+    client_loop(client_data);
     }
 }
 
-pub async fn start_server(){
+fn client_loop(client_loop: ClientData) {
+
+
+
+}
+
+struct ClientData {
+    s_out:mpsc::Sender<PlayerEvent>,
+    r_in:mpsc::Receiver<ServerEvent>,
+}
+
+impl ClientData {
+    fn update_and_get_input(&mut self) {
+        // flere keys kan trykkes samtidig
+        while let Some(k) = get_last_key_pressed() {
+            use PlayerEvent::*;
+            use Keys::*;
+            let event: PlayerEvent = match k {
+                KeyCode::Up => Pressed(Up),
+                KeyCode::Down => Pressed(Down),
+                KeyCode::Right => Pressed(Right),
+                KeyCode::Left => Pressed(Left),
+                KeyCode::W => Pressed(W),
+                KeyCode::A => Pressed(A),
+                KeyCode::S => Pressed(S),
+                KeyCode::D => Pressed(D),
+                KeyCode::Space => Pressed(Space),
+                _ => PlayerEvent::Unknown,
+            };
+        
+            // fyller opp channel buffer med player events
+            self.s_out.send(event).unwrap();
+        }
+    
+        if is_mouse_button_pressed(MouseButton::Left) {
+            self.s_out.send(PlayerEvent::MouseLeft(
+                        mouse_position().0,
+                        mouse_position().1)
+                ).unwrap()
+        }
+    
+        if is_mouse_button_pressed(MouseButton::Right) {
+            self.s_out.send(
+                PlayerEvent::MouseRight(
+                        mouse_position().0,
+                        mouse_position().1)
+                ).unwrap();
+        }
+    }
+    
+}
+
+pub async fn start_server() {
     
     // åpne forbindelse
-    let listener =
-        TcpListener::bind(
-            local_ip_address::local_ip().unwrap()
-                .to_string()).unwrap();
+    let listener = TcpListener::bind(
+        local_ip_address::local_ip().unwrap().to_string()).unwrap();
     
-    thread::Builder::new().name("server, loop".to_string()).spawn(move||{
-        
+    thread::Builder::new().name("server, loop".to_string()).spawn(move || {
         
         // lytter hele tiden til nye clients, server loop må adde dem
         let (s_stream, r_stream) = mpsc::channel();
-        thread::Builder::new().name("server, listener".to_string()).spawn(move||{
-            for stream in listener.incoming(){
+        thread::Builder::new().name("server, listener".to_string()).spawn(move || {
+            for stream in listener.incoming() {
                 s_stream.send(
                     stream.unwrap()
                 ).unwrap();
             }
         }).unwrap();
         
-        let mut server_data = ServerData{
+        let mut server_data = ServerData {
             connections: Vec::<Connection>::new(),
             player_inputs: Vec::<PlayerInput>::new(),
             r_stream,
         };
-
-        server_loop(server_data);
-
+        
+        server_loop(&mut server_data);
     }).unwrap();
 }
 
 
-// placeholder
-fn server_loop(server_data: ServerData)->ServerEvent{
-
+// placeholder fn server_loop(server_data: &mut ServerData) {
+    
     // kjør matching med gamemodes, route data fra forskjellige game modes
-    server_data.update_and_get();
+    
+    let mut mode = Mode::Lobby;
+    
+    return match mode {
+        Lobby => {
+            let input = server_data.update_and_get_input();
+            // lobby::logic() goes here
+            // server_data.connections.iter().send(b)
+            todo!();
+        }
+        Platform1 => {
+            let input = server_data.update_and_get_input();
+            todo!()
+        }
+        Quit => {
+            let input = server_data.update_and_get_input();
+            todo!()
+        }
+        Hjornefotball => {
+            let input = server_data.update_and_get_input();
+            todo!()
+        }
+    };
 }
 
-struct ServerData{
-    connections:Vec<Connection>,
-    player_inputs:Vec<PlayerInput>,
+struct ServerData {
+    connections: Vec<Connection>,
+    player_inputs: Vec<PlayerInput>,
     r_stream: mpsc::Receiver<TcpStream>,
 }
 
 impl ServerData {
-    pub fn update_and_get(&mut self)->&Vec<PlayerInput>{
-
+    pub fn update_and_get_input(&mut self) -> &Vec<PlayerInput> {
+        
         // oppdater data til api-objektet "player_inputs:PlayerInput"
-        for (connection, player) in
-        self.connections.iter_mut()
-            .zip(self.player_inputs.iter_mut()){
+        for (connection, player) in self.connections.iter_mut().zip(self.player_inputs.iter_mut()) {
             player.events.clear();
-
-            while let Some(t) = connection.receive(){
+            
+            while let Some(t) = connection.receive() {
                 player.events.push(t);
             }
         }
-
+        
         // kanskje listener har funnet en ny connection
-        if let Ok(t) = r_stream.try_recv(){
-            connections.push(Connection::new(t));
-            player_inputs.push(PlayerInput::new());
+        if let Ok(t) = self.r_stream.try_recv() {
+            self.connections.push(Connection::new(t));
+            self.player_inputs.push(PlayerInput::new());
         }
-
-        self.player_inputs
+        
+        &self.player_inputs
     }
 }
 
-enum ServerEvent{
+enum ServerEvent {
     Lobby(_),
     Platform1(_),
 }
 
-struct Connection{
+struct Connection {
     thread_event: JoinHandle<()>,
     thread_game_state: JoinHandle<()>,
     receiver_event: mpsc::Receiver<PlayerEvent>,
-    sender_game_state: mpsc::Sender<()>,
+    sender_game_state: mpsc::Sender<ServerEvent>,
 }
 
-impl Connection{
-    fn new(stream: TcpStream)->Connection{
-        
+impl Connection {
+    fn new(stream: TcpStream) -> Connection {
         let mut stream_event = stream.try_clone().unwrap();
         let (sender_event, receiver_event) = mpsc::channel();
-        let thread_event = thread::Builder::new().name("server connection event".to_string()).spawn(move||{
+        let thread_event = thread::Builder::new().name("server connection event".to_string()).spawn(move || {
+            let mut buffer = [0; 512];
             
-            let mut buffer = [0;512];
- 
             loop {
-                
                 let size = stream_event.read(&mut buffer).unwrap();
                 
                 sender_event.send(
@@ -217,14 +250,21 @@ impl Connection{
                 ).unwrap();
             }
         }).unwrap();
-    
+        
         let mut stream_game_state = stream.try_clone().unwrap();
         let (sender_game_state, receiver_game_state) = mpsc::channel();
-        let thread_game_state = thread::Builder::new().name("server connection game state".to_string()).spawn(move||{
-            todo!()
+        let thread_game_state =
+            thread::Builder::new()
+                .name("server connection game state".to_string())
+                .spawn(move || loop {
+            let event: ServerEvent = receiver_game_state.recv().unwrap();
+            
+            stream_game_state.write_all(
+                &bincode::serialize(&event).unwrap()
+            ).unwrap();
         }).unwrap();
-    
-        Connection{
+        
+        Connection {
             thread_event,
             thread_game_state,
             receiver_event,
@@ -232,33 +272,39 @@ impl Connection{
         }
     }
     
-    fn receive(&mut self)->Option<PlayerEvent>{
-        match self.receiver_event.try_recv(){
-            Ok(t)=>Some(t),
-            _=>None,
+    fn receive(&mut self) -> Option<PlayerEvent> {
+        match self.receiver_event.try_recv() {
+            Ok(t) => Some(t),
+            _ => None,
         }
     }
     
-    fn send(&mut self){
-        todo!()
+    fn send(&mut self, server_event: ServerEvent) {
+        self.sender_game_state.send(server_event).unwrap();
     }
 }
 
-impl Drop for Connection{
+impl Drop for Connection {
     fn drop(&mut self) {
         todo!()
     }
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub enum Keys{
-    Up, Down, Right, Left,
-    W, A, S, D,
+pub enum Keys {
+    Up,
+    Down,
+    Right,
+    Left,
+    W,
+    A,
+    S,
+    D,
     Space,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub enum PlayerEvent{
+pub enum PlayerEvent {
     Pressed(Keys),
     Released(Keys),
     MouseRight(f32, f32),
@@ -268,31 +314,30 @@ pub enum PlayerEvent{
     Unknown,
 }
 
-pub struct PlayerInput{
+pub struct PlayerInput {
     events: Vec<PlayerEvent>,
 }
 
-impl PlayerInput{
-    fn new()->PlayerInput{
-        PlayerInput{
+impl PlayerInput {
+    fn new() -> PlayerInput {
+        PlayerInput {
             events: Vec::new(),
         }
     }
- 
-    pub fn key_pressed(&mut self, key_code: Keys)->bool{
+    
+    pub fn key_pressed(&mut self, key_code: Keys) -> bool {
+        self.events.retain(|x| matches!(x, PlayerEvent::Pressed(key_code)));
         
-        self.events.retain(|x|matches!(x, PlayerEvent::Pressed(key_code)));
+        let mut index: Option<usize> = None;
         
-        let mut index:Option<usize> = None;
-        
-        for (i, event) in self.events.iter().enumerate(){
-            if matches!(event, PlayerEvent::Pressed(key_code)){
+        for (i, event) in self.events.iter().enumerate() {
+            if matches!(event, PlayerEvent::Pressed(key_code)) {
                 index = Some(i);
                 break;
             }
         }
         
-        if let Some(i) = index{
+        if let Some(i) = index {
             self.events.remove(i);
             return true;
         }
@@ -302,5 +347,8 @@ impl PlayerInput{
 
 #[derive(PartialEq)]
 pub enum Mode {
-    /*Menu, */Lobby, Platform1, Quit, Hjornefotball
+    /*Menu, */Lobby,
+    Platform1,
+    Quit,
+    Hjornefotball,
 }
