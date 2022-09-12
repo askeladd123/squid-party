@@ -44,37 +44,34 @@ pub fn intersection(a:Shape, b:Shape)->bool{
         }
         (Point(p), Circle(c))|
         (Circle(c), Point(p))=>{
-            return if
+            return
             f32::sqrt((c.center.x - p.x) * (c.center.x - p.x)
                 + (c.center.y - p.y) * (c.center.y - p.y)) < c.r
-            {
-                true
-            } else { false }
+
         }
         (Point(p), AABB(a))|
         (AABB(a), Point(p))=>{
-            return if
+            return
             p.x > a.center.x - a.rx &&
                 p.x < a.center.x + a.rx &&
                 p.y < a.center.y + a.ry &&
-                p.y > a.center.y - a.ry {
-                true
-            } else { false }
+                p.y > a.center.y - a.ry
         }
         (Point(p), Rect(r))|
         (Rect(r), Point(p))=>{
             todo!();
         }
         (Circle(a), Circle(b))=>{
-            return if a.r + b.r > f32::sqrt((b.center.x - a.center.x) *  (b.center.x - a.center.x)+
-                (b.center.y - a.center.y) * (b.center.y - a.center.y)) {
-                true
-            } else { false }
+            return
+                a.r + b.r > f32::sqrt((b.center.x - a.center.x) *  (b.center.x - a.center.x)+
+                (b.center.y - a.center.y) * (b.center.y - a.center.y))
+
         }
         (Circle(c), AABB(a))|
         (AABB(a), Circle(c))=>{
             if c.center.x <= a.center.x + a.rx && c.center.x >= a.center.x - a.rx{
-                return if c.center.y > a.center.y + a.ry {
+                return if
+                c.center.y > a.center.y + a.ry {
                     //nede i midten
                     if a.ry + c.r > c.center.y - a.center.y {
                         true

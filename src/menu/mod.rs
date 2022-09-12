@@ -61,7 +61,19 @@ pub fn tick(
         r:55.0,
     };
 
+    let o = physics::Rect{
+        center:
+        physics::Vector2d {
+            x: 400.0,
+            y: 400.0,
+        },
+        rx: 50.0,
+        ry: 50.0,
+        a: 40.0
+    };
 
+
+    draw_poly_lines(o.center.x, o.center.y, 2, 70.0, 0.0, 70.0, RED);
     draw_rectangle(b.center.x - b.rx, b.center.y - b.ry, b.rx * 2.0, b.ry * 2.0,
     if intersection(Shape::AABB(b),
                     Shape::Point(physics::Vector2d{x:mouse_position().0, y:mouse_position().1})){GREEN} else { BLUE });
