@@ -4,7 +4,7 @@ mod player;
 mod platform1;
 mod common;
 mod hjornefotball;
-mod network;
+// mod network;
 
 use macroquad::prelude::*;
 use common::input;
@@ -21,34 +21,6 @@ async fn main() {
     ));
     
     let mut common_data = common::Data::new(common::files::Data::new().await);
-    let mut players: Vec<Player> = vec![
-        Player{
-            position: physics::Vector2d{x:100.0, y: 100.0},
-            speed: physics::Vector2d{x:0.0, y:0.0},
-            acceleration: 1.2
-        },
-        Player{
-        position: physics::Vector2d{x:100.0, y: 100.0},
-        speed: physics::Vector2d{x:0.0, y:0.0},
-        acceleration: 1.0
-        },
-        Player {
-            position: physics::Vector2d { x: 100.0, y: 100.0 },
-            speed: physics::Vector2d{ x: 0.0, y: 0.0 },
-            acceleration: 0.8
-        },
-        Player {
-            position: physics::Vector2d { x: 100.0, y: 100.0 },
-            speed: physics::Vector2d{ x: 0.0, y: 0.0 },
-            acceleration: 0.6
-        },
-        Player {
-            position: physics::Vector2d { x: 100.0, y: 100.0 },
-            speed: physics::Vector2d{ x: 0.0, y: 0.0 },
-            acceleration: 0.4
-        },
-
-    ];
     
     loop {
         match common_data.mode{
