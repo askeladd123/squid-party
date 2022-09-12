@@ -1,11 +1,14 @@
-mod lobby;
+// mod lobby;
 mod menu;
 mod player;
-mod platform1;
+// mod platform1;
 mod common;
-mod hjornefotball;
+// mod hjornefotball;
 mod network;
 
+use std::borrow::{Borrow, BorrowMut};
+use std::cell::RefCell;
+use std::ops::Deref;
 use macroquad::prelude::*;
 use common::input;
 use player::Player;
@@ -82,11 +85,13 @@ async fn main() {
                 // når spillet er ferdig går du tilbake til menyen
                 common_data.mode == MenuMode::Main;
                 
-                network::start_server();
+                println!("starting server");
+                network::start_server(server_loop).await;
+                println!("starting client");
                 network::start_client(
-                    network::chain("localhost", ":", network::PORT).as_str(),
+                    network::chain("localhost", ":", network::PORT),
                     client_loop
-                );
+                ).await;
             }
             MenuMode::Options => {}
             MenuMode::MultiPlayer => {
@@ -96,7 +101,8 @@ async fn main() {
             }
             MenuMode::Join => {
                 
-                let ip = std::rc::Rc::new(String::new());
+                let mut ip = std::rc::Rc::new(String::new());
+                let mut written = Box::new(false);
                 while common_data.mode == MenuMode::Join{
                     clear_background(BLACK);
                     
@@ -104,33 +110,38 @@ async fn main() {
                         egui_macroquad::egui::Window::new("egui ❤ macroquad")
                             .show(egui_ctx, |ui| {
                                 ui.label("type in server ip: ");
-                                ui.text_edit_singleline(&mut *ip);
-                                if ui.button("enter"){
+                                ui.text_edit_singleline(&mut ip.to_string());
+                                if ui.button("enter").clicked(){
                                     // TODO: sjekk om text matcher en ip
-                                    
-                                    common_data.mode == MenuMode::Main;
-                                    start_client(
-                                        ip.as_str(),
-                                        client_loop
-                                    );
+                                    *written = true;
                                 };
                             });
                     });
                     egui_macroquad::draw();
+                    
+                    if *written{
+                        
+                        let address = network::chain(
+                            &*ip,
+                            ":",
+                            network::PORT
+                        );
+                        start_client(address, client_loop).await;
+                    }
                 }
             }
             MenuMode::Host=>{
                 common_data.mode == MenuMode::Main;
                 
-                start_server();
-                start_client(
+                network::start_server(server_loop).await;
+                network::start_client(
                     network::chain(
                         local_ip_address::local_ip().unwrap().to_string().as_str(),
                         ":",
                         network::PORT
-                    ).as_str(),
+                    ),
                     client_loop
-                );
+                ).await;
             }
             
             /*
@@ -175,10 +186,17 @@ async fn main() {
     }
 }
 
-fn client_loop(client_data:network::ClientData){
+#[derive(serde::Serialize, serde::Deserialize)]
+enum ServerEvent{
+    Lobby/*(lobby::State)*/,
+    Platform1/*(platform1::State)*/,
+    Hjornefotball/*(hjornefotball::State)*/,
+}
+
+fn client_loop(client_data:network::ClientData<ServerEvent>){
 
 }
 
-fn server_loop(){
+fn server_loop(server_data:&mut network::ServerData<ServerEvent>){
 
 }

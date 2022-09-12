@@ -9,6 +9,8 @@ use std::sync::mpsc::TryRecvError;
 use macroquad::input::{get_char_pressed, get_last_key_pressed, mouse_position};
 use macroquad::prelude::is_mouse_button_pressed;
 use macroquad::window::next_frame;
+use serde::{Deserialize, Serialize};
+use serde::de::DeserializeOwned;
 use crate::{KeyCode, MouseButton};
 use crate::network::Mode::Platform1;
 
@@ -31,11 +33,12 @@ sending system: enum MetaData + struct UserData
 
 pub const PORT:&str = "5000";
 
-pub async fn start_client(address:&str, client_loop:fn(ClientData)) {
+pub async fn start_client<T>(address:String, client_loop:fn(ClientData<T>))
+where T: Serialize + DeserializeOwned + Send + 'static{
     
     // connect to server
     let (sender, receiver) = mpsc::channel();
-    let waiter = thread::Builder::new().name("client, waiter".to_string()).spawn(|| {
+    let waiter = thread::Builder::new().name("client, waiter".to_string()).spawn(move|| {
         
         // TODO: riktig addresse
         let mut stream = TcpStream::connect(address).unwrap();
@@ -74,7 +77,7 @@ pub async fn start_client(address:&str, client_loop:fn(ClientData)) {
         let mut buffer = [0u8;512];
         stream_in.read(&mut buffer).unwrap();
         
-        let event:ServerEvent = bincode::deserialize(&buffer).unwrap();
+        let event:T = bincode::deserialize(&buffer).unwrap();
         s_in.send(event).unwrap();
         
     }).unwrap();
@@ -87,13 +90,13 @@ pub async fn start_client(address:&str, client_loop:fn(ClientData)) {
     client_loop(client_data);
 }
 
-pub struct ClientData {
+pub struct ClientData<T:Serialize + DeserializeOwned> {
     s_out:mpsc::Sender<PlayerEvent>,
-    r_in:mpsc::Receiver<ServerEvent>,
+    r_in:mpsc::Receiver<T>,
 }
 
-impl ClientData {
-    pub fn update_and_get_input(&mut self) {
+impl<T> ClientData<T> where T: Serialize + DeserializeOwned {
+    pub fn update_and_get_game_state(&mut self)->Option<T> {
         // flere keys kan trykkes samtidig
         while let Some(k) = get_last_key_pressed() {
             use PlayerEvent::*;
@@ -129,15 +132,27 @@ impl ClientData {
                         mouse_position().1)
                 ).unwrap();
         }
+        
+        // TODO: hvis de ikke er perfekt synca, vil channel fylle seg opp?
+        match self.r_in.try_recv() {
+            Ok(t) => Some(t),
+            Err(_) => None
+        }
     }
     
 }
 
-pub async fn start_server() {
+pub async fn start_server<T>(server_loop:fn(&mut ServerData<T>))
+where T:Serialize + DeserializeOwned + Send + 'static{
     
     // åpne forbindelse
     let listener = TcpListener::bind(
-        local_ip_address::local_ip().unwrap().to_string()).unwrap();
+        chain(
+            local_ip_address::local_ip().unwrap().to_string().as_str(),
+            ":",
+            PORT
+        )
+    ).unwrap();
     
     thread::Builder::new().name("server, loop".to_string()).spawn(move || {
         
@@ -152,7 +167,7 @@ pub async fn start_server() {
         }).unwrap();
         
         let mut server_data = ServerData {
-            connections: Vec::<Connection>::new(),
+            connections: Vec::<Connection<T>>::new(),
             player_inputs: Vec::<PlayerInput>::new(),
             r_stream,
         };
@@ -161,42 +176,13 @@ pub async fn start_server() {
     }).unwrap();
 }
 
-
-// placeholder fn server_loop(server_data: &mut ServerData) {
-    
-    // kjør matching med gamemodes, route data fra forskjellige game modes
-    
-    let mut mode = Mode::Lobby;
-    
-    return match mode {
-        Lobby => {
-            let input = server_data.update_and_get_input();
-            // lobby::logic() goes here
-            // server_data.connections.iter().send(b)
-            todo!();
-        }
-        Platform1 => {
-            let input = server_data.update_and_get_input();
-            todo!()
-        }
-        Quit => {
-            let input = server_data.update_and_get_input();
-            todo!()
-        }
-        Hjornefotball => {
-            let input = server_data.update_and_get_input();
-            todo!()
-        }
-    };
-}
-
-struct ServerData {
-    connections: Vec<Connection>,
+pub struct ServerData<T:Serialize + DeserializeOwned + Send + 'static> {
+    connections: Vec<Connection<T>>,
     player_inputs: Vec<PlayerInput>,
     r_stream: mpsc::Receiver<TcpStream>,
 }
 
-impl ServerData {
+impl<T> ServerData<T> where T: Serialize + DeserializeOwned + Send + 'static {
     pub fn update_and_get_input(&mut self) -> &Vec<PlayerInput> {
         
         // oppdater data til api-objektet "player_inputs:PlayerInput"
@@ -218,20 +204,15 @@ impl ServerData {
     }
 }
 
-enum ServerEvent {
-    Lobby(_),
-    Platform1(_),
-}
-
-struct Connection {
+struct Connection<T:Serialize + DeserializeOwned + Send + 'static> {
     thread_event: JoinHandle<()>,
     thread_game_state: JoinHandle<()>,
     receiver_event: mpsc::Receiver<PlayerEvent>,
-    sender_game_state: mpsc::Sender<ServerEvent>,
+    sender_game_state: mpsc::Sender<T>,
 }
 
-impl Connection {
-    fn new(stream: TcpStream) -> Connection {
+impl<T> Connection<T> where T: Serialize + DeserializeOwned + Send + 'static {
+    fn new(stream: TcpStream) -> Connection<T> {
         let mut stream_event = stream.try_clone().unwrap();
         let (sender_event, receiver_event) = mpsc::channel();
         let thread_event = thread::Builder::new().name("server connection event".to_string()).spawn(move || {
@@ -252,7 +233,7 @@ impl Connection {
             thread::Builder::new()
                 .name("server connection game state".to_string())
                 .spawn(move || loop {
-            let event: ServerEvent = receiver_game_state.recv().unwrap();
+            let event:T = receiver_game_state.recv().unwrap();
             
             stream_game_state.write_all(
                 &bincode::serialize(&event).unwrap()
@@ -274,12 +255,12 @@ impl Connection {
         }
     }
     
-    fn send(&mut self, server_event: ServerEvent) {
+    fn send(&mut self, server_event: T) {
         self.sender_game_state.send(server_event).unwrap();
     }
 }
 
-impl Drop for Connection {
+impl<T> Drop for Connection<T> where T: Serialize + DeserializeOwned + Send + 'static {
     fn drop(&mut self) {
         todo!()
     }

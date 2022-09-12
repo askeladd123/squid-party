@@ -17,7 +17,7 @@ pub struct Data{
 impl Data {
     pub fn new(files: files::Data) -> Data {
         Data {
-            mode: MenuMode::Menu,
+            mode: MenuMode::Main,
             player_id: 0,
             settings: settings::Data {
                 player_speed: 1.0,

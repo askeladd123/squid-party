@@ -85,7 +85,7 @@ fn logic(
     if is_key_pressed(KeyCode::Enter){
         match selected_button {
             // Hvis start knappen blir trykket gjør denne linjen at du blir sent til lobbyen
-            Button::Start => *mode = common::MenuMode::Lobby,
+            Button::Start => *mode = common::MenuMode::SinglePlayer,
             // Hvis Quit knappen er trykket gjør denne linjen at man avslutter spillet
             Button::Quit => *mode = common::MenuMode::Quit,
             _ => {}

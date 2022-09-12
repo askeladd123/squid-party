@@ -2,6 +2,11 @@ use macroquad::prelude::*;
 use crate::player::Player;
 use crate::common;
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct State{
+
+}
+
 pub struct Data{
 
 }
