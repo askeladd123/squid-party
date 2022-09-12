@@ -80,14 +80,14 @@ pub fn tick(
 fn logic(
     selected_button: &mut Button,
     mouse_and_keys: &mut input::MouseAndKeys,
-    mode: &mut common::Mode){
+    mode: &mut common::MenuMode){
     
     if is_key_pressed(KeyCode::Enter){
         match selected_button {
             // Hvis start knappen blir trykket gjør denne linjen at du blir sent til lobbyen
-            Button::Start => *mode = common::Mode::Lobby,
+            Button::Start => *mode = common::MenuMode::Lobby,
             // Hvis Quit knappen er trykket gjør denne linjen at man avslutter spillet
-            Button::Quit => *mode = common::Mode::Quit,
+            Button::Quit => *mode = common::MenuMode::Quit,
             _ => {}
         }
     }

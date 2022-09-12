@@ -32,12 +32,12 @@ fn logic(common: &mut common::Data, players: &mut Vec<Player>){
     // tøre enn teppet sitt
     // Hvis den er det vil common:mode bli endret til platform1
     if TEPPE < players[0].position.x{
-        common.mode = common::Mode::Platform1;
+        common.mode = common::MenuMode::Platform1;
         return;
     }
 
     if 30.0 > players[0].position.x{
-        common.mode = common::Mode::Hjornefotball;
+        common.mode = common::MenuMode::Hjornefotball;
         return;
     }
 

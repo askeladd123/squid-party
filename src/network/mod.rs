@@ -29,14 +29,16 @@ sending system: enum MetaData + struct UserData
 
 */
 
-pub async fn start_client() {
+pub const PORT:&str = "5000";
+
+pub async fn start_client(address:&str, client_loop:fn(ClientData)) {
     
     // connect to server
     let (sender, receiver) = mpsc::channel();
     let waiter = thread::Builder::new().name("client, waiter".to_string()).spawn(|| {
         
         // TODO: riktig addresse
-        let mut stream = TcpStream::connect("lol").unwrap();
+        let mut stream = TcpStream::connect(address).unwrap();
         sender.send(stream).unwrap();
     }).unwrap();
     
@@ -83,22 +85,15 @@ pub async fn start_client() {
     };
     
     client_loop(client_data);
-    }
 }
 
-fn client_loop(client_loop: ClientData) {
-
-
-
-}
-
-struct ClientData {
+pub struct ClientData {
     s_out:mpsc::Sender<PlayerEvent>,
     r_in:mpsc::Receiver<ServerEvent>,
 }
 
 impl ClientData {
-    fn update_and_get_input(&mut self) {
+    pub fn update_and_get_input(&mut self) {
         // flere keys kan trykkes samtidig
         while let Some(k) = get_last_key_pressed() {
             use PlayerEvent::*;
@@ -353,7 +348,7 @@ pub enum Mode {
     Hjornefotball,
 }
 
-fn chain(a: &str, b: &str, c: &str)->String {
+pub fn chain(a: &str, b: &str, c: &str)->String {
     let mut abc = String::new();
     abc.push_str(a);
     abc.push_str(b);

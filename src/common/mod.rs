@@ -6,7 +6,7 @@ pub mod settings;
 pub mod input;
 
 pub struct Data{
-    pub mode: Mode,
+    pub mode: MenuMode,
     pub player_id: usize,
     pub settings: settings::Data,
     pub mouse_and_keys: input::MouseAndKeys,
@@ -17,7 +17,7 @@ pub struct Data{
 impl Data {
     pub fn new(files: files::Data) -> Data {
         Data {
-            mode: Mode::Menu,
+            mode: MenuMode::Menu,
             player_id: 0,
             settings: settings::Data {
                 player_speed: 1.0,
@@ -30,7 +30,7 @@ impl Data {
 }
 
 #[derive(PartialEq)]
-// Denne enum forteller hvilket vindu man er i akkurat nå
-pub enum Mode {
-    Menu, Lobby, Platform1, Quit, Hjornefotball
+/// Denne enum forteller hvilket vindu man er i akkurat nå
+pub enum MenuMode {
+    Main, SinglePlayer, MultiPlayer, Join, Host, Options, Quit,
 }
