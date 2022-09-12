@@ -86,23 +86,23 @@ pub fn intersection(a:Shape, b:Shape)->bool{
             else if c.center.x <= a.center.x - a.rx{
                 //oppe i venstre hjørnet
                 return if c.center.y < a.center.y - a.ry {
-                    if f32::sqrt((a.rx * a.rx) + (a.ry * a.ry)) + c.r >
-                        f32::sqrt(((a.center.y - c.center.y) * (a.center.y - c.center.y) )+
-                            ((a.center.x - c.center.x) * (a.center.x - c.center.x)))
+                    if c.r >
+                        f32::sqrt((((a.center.y - a.ry) - c.center.y) * ((a.center.y - a.ry) - c.center.y)) +
+                            (((a.center.x - a.rx) - c.center.x) * ((a.center.x - a.rx) - c.center.x)))
                         {
                         true
                     } else { false }
                 } else if c.center.y >= (a.center.y + a.ry) {
                     //nede til venstre
-                    if f32::sqrt((a.rx * a.rx) + (a.ry * a.ry)) + c.r >
-                        f32::sqrt(((c.center.y - a.center.y) * (c.center.y - a.center.y) )+
-                            ((a.center.x - c.center.x) * (a.center.x - c.center.x)))
+                    if c.r >
+                        f32::sqrt(((c.center.y - (a.center.y + a.ry)) * (c.center.y - (a.center.y + a.ry)) ) +
+                            (((a.center.x - a.rx) - c.center.x) * ((a.center.x - a.rx) - c.center.x)))
                     {
                         true
                     } else { false }
                 } else {
                     //venstre midt
-                    if a.rx + c.r > a.center.x - c.center.x {
+                    if a.rx + c.r >= a.center.x - c.center.x {
                         true
                     } else { false }
                 }
@@ -110,23 +110,23 @@ pub fn intersection(a:Shape, b:Shape)->bool{
             else if c.center.x >= a.center.x + a.rx{
                 return if c.center.y < a.center.y - a.ry {
                     //oppe i høyre hjørnet
-                    if f32::sqrt((a.rx * a.rx) + (a.ry * a.ry)) + c.r >
-                        f32::sqrt(((a.center.y - c.center.y) * (a.center.y - c.center.y) )+
-                            ((c.center.x - a.center.x) * (c.center.x - a.center.x)))
+                    if c.r >
+                        f32::sqrt((((a.center.y - a.ry) - c.center.y) * ((a.center.y - a.ry) - c.center.y)) +
+                            ((c.center.x - (a.center.x + a.rx)) * (c.center.x - (a.center.x + a.rx))))
                     {
                         true
                     } else { false }
                 } else if c.center.y > (a.center.y + a.ry) {
                     //nede til høyre
-                    if f32::sqrt((a.rx * a.rx) + (a.ry * a.ry)) + c.r >
-                        f32::sqrt(((c.center.y - a.center.y) * (c.center.y - a.center.y) )+
-                            ((c.center.x - a.center.x) * (c.center.x - a.center.x)))
+                    if c.r >
+                        f32::sqrt(((c.center.y - (a.center.y + a.ry)) * (c.center.y - (a.center.y + a.ry)))+
+                            ((c.center.x - (a.center.x + a.rx)) * (c.center.x - (a.center.x + a.rx))))
                     {
                         true
                     } else { false }
                 } else {
                     //høyre i midten
-                    if a.rx + c.r > c.center.x - a.center.x {
+                    if a.rx + c.r >= c.center.x - a.center.x {
                         true
                     } else { false }
                 }
