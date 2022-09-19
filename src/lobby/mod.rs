@@ -30,19 +30,21 @@ pub fn tick(data: &mut Data, common: &mut common::Data, players: &mut Vec<Player
 const TEPPE: f32 = 1000.0;
 
 
-fn logic(common: &mut common::Data, players: &mut Vec<Player>){
+pub fn logic(common: &mut common::Data, players: &mut Vec<Player>){
 
 
     // Ser om spilleren sin posisjon er s
     // tøre enn teppet sitt
     // Hvis den er det vil common:mode bli endret til platform1
     if TEPPE < players[0].position.x{
-        common.mode = common::MenuMode::Platform1;
+        // todo change dis åne
+        // common.mode = common::MenuMode::Platform1;
         return;
     }
 
     if 30.0 > players[0].position.x{
-        common.mode = common::MenuMode::Hjornefotball;
+        // todo change dis åne
+        // common.mode = common::MenuMode::Hjornefotball;
         return;
     }
 
@@ -96,7 +98,7 @@ fn logic(common: &mut common::Data, players: &mut Vec<Player>){
 
 }
 
-fn graphics(
+pub fn graphics(
     files: & common::files::Data,
     // player har posisjon og speed lagret som vektorer.
     players: &mut Vec<Player>,

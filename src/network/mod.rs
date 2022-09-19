@@ -33,7 +33,7 @@ sending system: enum MetaData + struct UserData
 
 */
 
-const PORT: &str = "5000";
+const PORT: &str = "55555";
 
 // pub async fn start_client<T>(ip: String, client_loop: fn(&mut Client<T>))
 //                                 where T: Serialize + DeserializeOwned + Send + 'static + Default {
@@ -115,10 +115,13 @@ impl<ServerData> Waiter<ServerData>
         match self.r_stream.try_recv(){
             Ok(stream) => {
                 self.t_waiter.join().unwrap();
-                // self.t_waiter.join().unwrap();
     
                 // connection threads
-                println!("connection established, (hopefully)");
+                println!(
+                    "connection established, \n\tfrom {} \n\tto {}",
+                    stream.local_addr().unwrap(),
+                    stream.peer_addr().unwrap(),
+                );
     
                 // TODO: litt weird at det viktigste thread koden ligger her
                 let mut stream_out = stream.try_clone().unwrap();
@@ -162,17 +165,12 @@ impl<ServerData> Client<ServerData>
     where ServerData: Serialize + DeserializeOwned + Default + Send + 'static {
     pub fn connect(ip: &str)-> Waiter<ServerData> {
         // connect to server
-        let ip = String::from(ip);
+        let ip = chain(ip, ":", PORT);
         let (sender, receiver) = mpsc::channel();
         let sender_clone = sender.clone();
         let waiter = thread::Builder::new().name("client, waiter".to_string()).spawn(move ||
             loop {
-                if let Ok(stream) = TcpStream::connect(
-                    chain(
-                        ip.as_str(),
-                        ":",
-                        PORT,
-                    )) {
+                if let Ok(stream) = TcpStream::connect(&ip) {
                     sender_clone.send(stream).unwrap();
                     break;
                 }
@@ -190,9 +188,16 @@ impl<ServerData> Client<ServerData>
     
     pub fn send_input(&mut self, get_input: fn()->Option<PlayerEvent>){
         
-        while let Some(e) = get_input() {
-            self.s_out.send(e).unwrap()
+        if let Some(e) = get_input(){
+            println!("client sending {e:?}");
+            
+            self.s_out.send(e).unwrap();
         }
+        
+        // while let Some(e) = get_input() {
+        //
+        //     self.s_out.send(e).unwrap()
+        // }
     }
     
     pub fn custom_input_func_macroquad() ->Option<PlayerEvent>{
@@ -268,10 +273,13 @@ pub fn start_server<T>(ip: &str, server_loop: fn(&mut ServerData<T>))
         let (s_stream, r_stream) = mpsc::channel();
         thread::Builder::new().name("server, listener".to_string()).spawn(move || {
             for stream in listener.incoming() {
-                println!("server listener found connection");
-                s_stream.send(
-                    stream.unwrap()
-                ).expect("server listener: receiver was disconnected");
+                let s = stream.unwrap();
+                println!(
+                    "server listener found connection: \n\tfrom {}\n\tto {}",
+                         s.local_addr().unwrap(),
+                        s.peer_addr().unwrap(),
+                );
+                s_stream.send(s).expect("server listener: receiver was disconnected");
             }
         }).unwrap();
         
@@ -293,9 +301,24 @@ pub struct ServerData<T: Serialize + DeserializeOwned + Send + 'static> {
 
 impl<T> ServerData<T> where T: Serialize + DeserializeOwned + Send + 'static {
     pub fn update_and_get_input(&mut self) -> &mut Vec<PlayerInput> {
+    
+        match self.r_stream.try_recv() {
+            Ok(stream) => {
+                println!("serverdata receiver found connection");
+                self.connections.push(Connection::new(stream));
+                self.player_inputs.push(PlayerInput::new());
+            }
+            Err(e) => match e {
+                TryRecvError::Empty => {}
+                TryRecvError::Disconnected => {
+                    panic!("serverdata receiver error: channel was disconnected: {e}");
+                }
+            }
+        }
         
         // oppdater data til api-objektet "player_inputs:PlayerInput"
-        for (connection, player) in self.connections.iter_mut().zip(self.player_inputs.iter_mut()) {
+        for (connection, player)
+        in self.connections.iter_mut().zip(self.player_inputs.iter_mut()) {
             player.events.clear();
             
             while let Some(t) = connection.receive() {
@@ -308,18 +331,6 @@ impl<T> ServerData<T> where T: Serialize + DeserializeOwned + Send + 'static {
         //     self.connections.push(Connection::new(t));
         //     self.player_inputs.push(PlayerInput::new());
         // }
-        
-        match self.r_stream.try_recv() {
-            Ok(_) => {
-                println!("serverdata receiver found connection");
-            }
-            Err(e) => match e {
-                TryRecvError::Empty => {}
-                TryRecvError::Disconnected => {
-                    panic!("serverdata receiver error: channel was disconnected: {e}");
-                }
-            }
-        }
         
         &mut self.player_inputs
     }
@@ -334,6 +345,9 @@ struct Connection<T: Serialize + DeserializeOwned + Send + 'static> {
 
 impl<T> Connection<T> where T: Serialize + DeserializeOwned + Send + 'static {
     fn new(stream: TcpStream) -> Connection<T> {
+        
+        println!("server starting up a new connection");
+        
         let mut stream_event = stream.try_clone().unwrap();
         let (sender_event, receiver_event) = mpsc::channel();
         let thread_event = thread::Builder::new().name("server connection event".to_string()).spawn(move || {
@@ -384,7 +398,7 @@ impl<T> Drop for Connection<T> where T: Serialize + DeserializeOwned + Send + 's
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub enum Keys {
     Up,
     Down,
@@ -397,7 +411,7 @@ pub enum Keys {
     Space,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub enum PlayerEvent {
     Pressed(Keys),
     Released(Keys),
@@ -420,6 +434,7 @@ impl PlayerInput {
     }
     
     pub fn key_pressed(&mut self, key_code: Keys) -> bool {
+        
         self.events.retain(|x| matches!(x, PlayerEvent::Pressed(key_code)));
         
         let mut index: Option<usize> = None;
