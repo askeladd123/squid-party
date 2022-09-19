@@ -1,17 +1,19 @@
+use std::borrow::{Borrow, BorrowMut};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc;
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
 use std::collections::{HashMap};
-use std::io::{Read, Write};
-use std::sync::mpsc::TryRecvError;
+use std::io::{Error, Read, Write};
+use std::marker::PhantomData;
+use std::sync::mpsc::{Receiver, TryRecvError};
 use macroquad::input::{get_char_pressed, get_last_key_pressed, mouse_position};
-use macroquad::prelude::is_mouse_button_pressed;
+use macroquad::prelude::{clear_background, is_mouse_button_pressed};
 use macroquad::window::next_frame;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
-use crate::{KeyCode, MouseButton};
+use crate::{KeyCode, MouseButton, ServerEvent};
 use crate::network::Mode::Platform1;
 
 /*
@@ -31,77 +33,174 @@ sending system: enum MetaData + struct UserData
 
 */
 
-pub const PORT:&str = "5000";
+const PORT: &str = "5000";
 
-pub async fn start_client<T>(address:String, client_loop:fn(ClientData<T>))
-where T: Serialize + DeserializeOwned + Send + 'static{
-    
-    // connect to server
-    let (sender, receiver) = mpsc::channel();
-    let waiter = thread::Builder::new().name("client, waiter".to_string()).spawn(move|| {
+// pub async fn start_client<T>(ip: String, client_loop: fn(&mut Client<T>))
+//                                 where T: Serialize + DeserializeOwned + Send + 'static + Default {
+//
+//     // connect to server
+//     let (sender, receiver) = mpsc::channel();
+//     let sender_clone = sender.clone();
+//     let waiter = thread::Builder::new().name("client, waiter".to_string()).spawn(move ||
+//         loop {
+//             if let Ok(stream) = TcpStream::connect(
+//                 chain(
+//                     ip.as_str(),
+//                     ":",
+//                     PORT,
+//                 )) {
+//                 sender_clone.send(stream).unwrap();
+//                 break;
+//             }
+//             println!("client waiter couldn't find connection... trying again");
+//             thread::sleep(Duration::from_secs(3));
+//         }
+//     ).unwrap();
+//
+//     // waiting for connection
+//     while let Err(TryRecvError::Empty) = receiver.try_recv() {
+//         // TODO: wating screen
+//         println!("waiting for connection");
+//         thread::sleep(Duration::from_secs(4));
+//     }
+//
+//     let mut stream = receiver.recv().unwrap();
+//
+//     waiter.join().unwrap();
+//
+//     // connection threads
+//     println!("connection established, (hopefully)");
+//
+//     let mut stream_out = stream.try_clone().unwrap();
+//     let (s_out, r_out) = mpsc::channel();
+//     thread::Builder::new().name("client, out".to_string()).spawn(move || loop {
+//         let event: PlayerEvent = r_out.recv().unwrap();
+//         stream_out.write_all(
+//             &bincode::serialize(&event).unwrap()
+//         ).unwrap();
+//     }).unwrap();
+//
+//     let mut stream_in = stream.try_clone().unwrap();
+//     let (s_in, r_in) = mpsc::channel();
+//     thread::Builder::new().name("client, in".to_string()).spawn(move || {
+//         let mut buffer = [0u8; 512];
+//         stream_in.read(&mut buffer).unwrap();
+//
+//         let event: T = bincode::deserialize(&buffer).unwrap();
+//         s_in.send(event).unwrap();
+//     }).unwrap();
+//
+//     let mut client_data = Client {
+//         s_out,
+//         r_in,
+//         last_data: ServerEvent::default(),
+//     };
+//
+//     client_loop(&mut client_data);
+// }
+
+pub struct Waiter<ServerData: Default + Serialize + DeserializeOwned + Send + 'static> {
+    r_stream: Receiver<TcpStream>,
+    t_waiter: JoinHandle<()>,
+    _lol: PhantomData<ServerData> // TODO: få api til å funke uten denne rare variabelen
+}
+
+impl<ServerData> Waiter<ServerData>
+    where ServerData: Default + Serialize + DeserializeOwned + Send + 'static {
+    pub fn try_get(self) ->Result<Client<ServerData>, Self> {
         
-        // TODO: riktig addresse
-        let mut stream = TcpStream::connect(address).unwrap();
-        sender.send(stream).unwrap();
-    }).unwrap();
-    
-    // waiting for connection
-    while let Err(TryRecvError::Empty) = receiver.try_recv() {
+        // TODO: burde være mulig å lage denne funksjonen uten at den lager errors med self osv.
+        // thread handle kan ikke joines i en loop,
         
-        // TODO: wating screen
-        println!("waiting for connection");
+        match self.r_stream.try_recv(){
+            Ok(stream) => {
+                self.t_waiter.join().unwrap();
+                // self.t_waiter.join().unwrap();
+    
+                // connection threads
+                println!("connection established, (hopefully)");
+    
+                // TODO: litt weird at det viktigste thread koden ligger her
+                let mut stream_out = stream.try_clone().unwrap();
+                let (s_out, r_out) = mpsc::channel();
+                thread::Builder::new().name("client, out".to_string()).spawn(move || loop {
+                    let event: PlayerEvent = r_out.recv().unwrap();
+                    stream_out.write_all(
+                        &bincode::serialize(&event).unwrap()
+                    ).unwrap();
+                }).unwrap();
+    
+                // TODO: litt weird at det viktigste thread koden ligger her også
+                let mut stream_in = stream.try_clone().unwrap();
+                let (s_in, r_in) = mpsc::channel();
+                thread::Builder::new().name("client, in".to_string()).spawn(move || {
+                    let mut buffer = [0u8; 512];
+                    stream_in.read(&mut buffer).unwrap();
+        
+                    let event: ServerData = bincode::deserialize(&buffer).unwrap();
+                    s_in.send(event).unwrap();
+                }).unwrap();
+    
+                Ok(Client {
+                    s_out,
+                    r_in,
+                    last_data: ServerData::default()
+                })
+            }
+            Err(_) => Err(self)
+        }
+    }
+}
+
+pub struct Client<ServerData: Serialize + DeserializeOwned> {
+    s_out: mpsc::Sender<PlayerEvent>,
+    r_in: mpsc::Receiver<ServerData>,
+    last_data: ServerData,
+}
+
+impl<ServerData> Client<ServerData>
+    where ServerData: Serialize + DeserializeOwned + Default + Send + 'static {
+    pub fn connect(ip: &str)-> Waiter<ServerData> {
+        // connect to server
+        let ip = String::from(ip);
+        let (sender, receiver) = mpsc::channel();
+        let sender_clone = sender.clone();
+        let waiter = thread::Builder::new().name("client, waiter".to_string()).spawn(move ||
+            loop {
+                if let Ok(stream) = TcpStream::connect(
+                    chain(
+                        ip.as_str(),
+                        ":",
+                        PORT,
+                    )) {
+                    sender_clone.send(stream).unwrap();
+                    break;
+                }
+                println!("client waiter couldn't find connection... trying again");
+                thread::sleep(Duration::from_secs(3));
+            }
+        ).unwrap();
+        
+        return Waiter {
+            r_stream: receiver,
+            t_waiter: waiter,
+            _lol: Default::default()
+        };
     }
     
-    let mut stream = receiver.recv().unwrap();
-    
-    waiter.join().unwrap();
-    
-    // connection threads
-    println!("connection established, (hopefully)");
-    
-    let mut stream_out = stream.try_clone().unwrap();
-    let (s_out, r_out) = mpsc::channel();
-    thread::Builder::new().name("client, out".to_string()).spawn(move || loop {
-    
-        let event: PlayerEvent = r_out.recv().unwrap();
-        stream_out.write_all(
-            &bincode::serialize(&event).unwrap()
-        ).unwrap();
-    
-    }).unwrap();
-    
-    let mut stream_in = stream.try_clone().unwrap();
-    let (s_in, r_in) = mpsc::channel();
-    thread::Builder::new().name("client, in".to_string()).spawn(move || {
+    pub fn send_input(&mut self, get_input: fn()->Option<PlayerEvent>){
         
-        let mut buffer = [0u8;512];
-        stream_in.read(&mut buffer).unwrap();
-        
-        let event:T = bincode::deserialize(&buffer).unwrap();
-        s_in.send(event).unwrap();
-        
-    }).unwrap();
+        while let Some(e) = get_input() {
+            self.s_out.send(e).unwrap()
+        }
+    }
     
-    let mut client_data = ClientData {
-        s_out,
-        r_in,
-    };
-    
-    client_loop(client_data);
-}
-
-pub struct ClientData<T:Serialize + DeserializeOwned> {
-    s_out:mpsc::Sender<PlayerEvent>,
-    r_in:mpsc::Receiver<T>,
-}
-
-impl<T> ClientData<T> where T: Serialize + DeserializeOwned {
-    pub fn update_and_get_game_state(&mut self)->Option<T> {
+    pub fn custom_input_func_macroquad() ->Option<PlayerEvent>{
         // flere keys kan trykkes samtidig
-        while let Some(k) = get_last_key_pressed() {
+        if let Some(k) = get_last_key_pressed() {
             use PlayerEvent::*;
             use Keys::*;
-            let event: PlayerEvent = match k {
+            return Some(match k {
                 KeyCode::Up => Pressed(Up),
                 KeyCode::Down => Pressed(Down),
                 KeyCode::Right => Pressed(Right),
@@ -112,47 +211,56 @@ impl<T> ClientData<T> where T: Serialize + DeserializeOwned {
                 KeyCode::D => Pressed(D),
                 KeyCode::Space => Pressed(Space),
                 _ => PlayerEvent::Unknown,
-            };
-        
-            // fyller opp channel buffer med player events
-            self.s_out.send(event).unwrap();
+            })
         }
     
         if is_mouse_button_pressed(MouseButton::Left) {
-            self.s_out.send(PlayerEvent::MouseLeft(
-                        mouse_position().0,
-                        mouse_position().1)
-                ).unwrap()
+            return Some(PlayerEvent::MouseLeft(
+                mouse_position().0,
+                mouse_position().1)
+            )
         }
     
         if is_mouse_button_pressed(MouseButton::Right) {
-            self.s_out.send(
-                PlayerEvent::MouseRight(
-                        mouse_position().0,
-                        mouse_position().1)
-                ).unwrap();
+                return Some(PlayerEvent::MouseRight(
+                    mouse_position().0,
+                    mouse_position().1)
+                )
         }
-        
-        // TODO: hvis de ikke er perfekt synca, vil channel fylle seg opp?
-        match self.r_in.try_recv() {
-            Ok(t) => Some(t),
-            Err(_) => None
-        }
+        None
     }
     
+    pub fn get_server_data(&mut self)->&ServerData {
+        if let Ok(t) = self.r_in.try_recv(){
+            self.last_data = t;
+        }
+        &self.last_data
+    }
+    
+    pub fn get_game_state(&mut self) -> &ServerData {
+        
+        // TODO: hvis de ikke er perfekt synca, vil channel fylle seg opp?
+        
+        if let Ok(data) = self.r_in.try_recv(){
+            self.last_data = data;
+        }
+
+        &self.last_data
+    }
 }
 
-pub async fn start_server<T>(server_loop:fn(&mut ServerData<T>))
-where T:Serialize + DeserializeOwned + Send + 'static{
+pub fn start_server<T>(ip: &str, server_loop: fn(&mut ServerData<T>))
+                             where T: Serialize + DeserializeOwned + Send + 'static {
     
     // åpne forbindelse
     let listener = TcpListener::bind(
         chain(
-            local_ip_address::local_ip().unwrap().to_string().as_str(),
+            ip,
             ":",
-            PORT
+            PORT,
         )
     ).unwrap();
+    println!("server port open");
     
     thread::Builder::new().name("server, loop".to_string()).spawn(move || {
         
@@ -160,9 +268,10 @@ where T:Serialize + DeserializeOwned + Send + 'static{
         let (s_stream, r_stream) = mpsc::channel();
         thread::Builder::new().name("server, listener".to_string()).spawn(move || {
             for stream in listener.incoming() {
+                println!("server listener found connection");
                 s_stream.send(
                     stream.unwrap()
-                ).unwrap();
+                ).expect("server listener: receiver was disconnected");
             }
         }).unwrap();
         
@@ -176,14 +285,14 @@ where T:Serialize + DeserializeOwned + Send + 'static{
     }).unwrap();
 }
 
-pub struct ServerData<T:Serialize + DeserializeOwned + Send + 'static> {
+pub struct ServerData<T: Serialize + DeserializeOwned + Send + 'static> {
     connections: Vec<Connection<T>>,
     player_inputs: Vec<PlayerInput>,
     r_stream: mpsc::Receiver<TcpStream>,
 }
 
 impl<T> ServerData<T> where T: Serialize + DeserializeOwned + Send + 'static {
-    pub fn update_and_get_input(&mut self) -> &Vec<PlayerInput> {
+    pub fn update_and_get_input(&mut self) -> &mut Vec<PlayerInput> {
         
         // oppdater data til api-objektet "player_inputs:PlayerInput"
         for (connection, player) in self.connections.iter_mut().zip(self.player_inputs.iter_mut()) {
@@ -194,17 +303,29 @@ impl<T> ServerData<T> where T: Serialize + DeserializeOwned + Send + 'static {
             }
         }
         
-        // kanskje listener har funnet en ny connection
-        if let Ok(t) = self.r_stream.try_recv() {
-            self.connections.push(Connection::new(t));
-            self.player_inputs.push(PlayerInput::new());
+        // // kanskje listener har funnet en ny connection
+        // if let Ok(t) = self.r_stream.try_recv() {
+        //     self.connections.push(Connection::new(t));
+        //     self.player_inputs.push(PlayerInput::new());
+        // }
+        
+        match self.r_stream.try_recv() {
+            Ok(_) => {
+                println!("serverdata receiver found connection");
+            }
+            Err(e) => match e {
+                TryRecvError::Empty => {}
+                TryRecvError::Disconnected => {
+                    panic!("serverdata receiver error: channel was disconnected: {e}");
+                }
+            }
         }
         
-        &self.player_inputs
+        &mut self.player_inputs
     }
 }
 
-struct Connection<T:Serialize + DeserializeOwned + Send + 'static> {
+struct Connection<T: Serialize + DeserializeOwned + Send + 'static> {
     thread_event: JoinHandle<()>,
     thread_game_state: JoinHandle<()>,
     receiver_event: mpsc::Receiver<PlayerEvent>,
@@ -223,17 +344,14 @@ impl<T> Connection<T> where T: Serialize + DeserializeOwned + Send + 'static {
                 
                 sender_event.send(
                     bincode::deserialize(&buffer[..size]).unwrap()
-                ).unwrap();
+                ).expect("server connection receiever disconnected");
             }
         }).unwrap();
         
         let mut stream_game_state = stream.try_clone().unwrap();
         let (sender_game_state, receiver_game_state) = mpsc::channel();
-        let thread_game_state =
-            thread::Builder::new()
-                .name("server connection game state".to_string())
-                .spawn(move || loop {
-            let event:T = receiver_game_state.recv().unwrap();
+        let thread_game_state = thread::Builder::new().name("server connection game state".to_string()).spawn(move || loop {
+            let event: T = receiver_game_state.recv().unwrap();
             
             stream_game_state.write_all(
                 &bincode::serialize(&event).unwrap()
@@ -329,7 +447,7 @@ pub enum Mode {
     Hjornefotball,
 }
 
-pub fn chain(a: &str, b: &str, c: &str)->String {
+pub fn chain(a: &str, b: &str, c: &str) -> String {
     let mut abc = String::new();
     abc.push_str(a);
     abc.push_str(b);

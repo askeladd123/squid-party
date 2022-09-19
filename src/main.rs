@@ -1,3 +1,5 @@
+extern crate core;
+
 // mod lobby;
 mod menu;
 mod player;
@@ -9,20 +11,17 @@ mod network;
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::RefCell;
 use std::ops::Deref;
+use std::time::Duration;
 use macroquad::prelude::*;
 use common::input;
 use player::Player;
 use crate::common::MenuMode;
-use crate::network::{start_client, start_server};
+use crate::network::{Client, Keys, PlayerEvent, Waiter};
+
+// TODO flytte kode ut i andre filer (så man kan samarbeide)
 
 #[macroquad::main("BetaDev")]
 async fn main() {
-    
-    use physics::*;
-    println!("intersection: {}", intersection(
-        Shape::AABB(AABB{center:Vector2d{x:0.0, y:0.0}, rx:100.0, ry:100.0}),
-        Shape::AABB(AABB{center:Vector2d{x:10.0, y:10.0}, rx:100.0, ry:100.0}),
-    ));
     
     let mut common_data = common::Data::new(common::files::Data::new().await);
     let mut players: Vec<Player> = vec![
@@ -83,15 +82,36 @@ async fn main() {
             }
             MenuMode::SinglePlayer=>{
                 // når spillet er ferdig går du tilbake til menyen
-                common_data.mode == MenuMode::Main;
+                common_data.mode = MenuMode::Main;
                 
-                println!("starting server");
-                network::start_server(server_loop).await;
-                println!("starting client");
-                network::start_client(
-                    network::chain("localhost", ":", network::PORT),
-                    client_loop
-                ).await;
+                // init
+                network::start_server("localhost", server_loop);
+                
+                // loop
+                let mut waiter = network::Client::<ServerEvent>::connect("localhost");
+                let mut client = loop{
+                    // TODO: connecting screen
+                    println!("client waiting for connection");
+                    
+                    waiter = match waiter.try_get(){
+                        Ok(t) => break t,
+                        Err(s) => s,
+                    };
+                    
+                    next_frame().await;
+                };
+                
+                loop{
+                    client.send_input(input_macroquad);
+                    
+                    match client.get_game_state(){
+                        ServerEvent::Lobby => {}
+                        ServerEvent::Platform1 => {}
+                        ServerEvent::Hjornefotball => {}
+                    }
+                    
+                    next_frame().await;
+                }
             }
             MenuMode::Options => {}
             MenuMode::MultiPlayer => {
@@ -120,28 +140,16 @@ async fn main() {
                     egui_macroquad::draw();
                     
                     if *written{
-                        
-                        let address = network::chain(
-                            &*ip,
-                            ":",
-                            network::PORT
-                        );
-                        start_client(address, client_loop).await;
+                        // network::start_client((*ip).clone(), client_loop).await;
                     }
                 }
             }
             MenuMode::Host=>{
-                common_data.mode == MenuMode::Main;
-                
-                network::start_server(server_loop).await;
-                network::start_client(
-                    network::chain(
-                        local_ip_address::local_ip().unwrap().to_string().as_str(),
-                        ":",
-                        network::PORT
-                    ),
-                    client_loop
-                ).await;
+                // common_data.mode == MenuMode::Main;
+                //
+                // let ip = local_ip_address::local_ip().unwrap().to_string();
+                // network::start_server(ip.clone(), server_loop).await;
+                // network::start_client(ip.clone(), client_loop).await;
             }
             
             /*
@@ -193,10 +201,71 @@ enum ServerEvent{
     Hjornefotball/*(hjornefotball::State)*/,
 }
 
-fn client_loop(client_data:network::ClientData<ServerEvent>){
+impl Default for ServerEvent{
+    fn default() -> Self {
+        Self::Lobby
+    }
+}
 
+fn client_loop(client_data:&mut network::Client<ServerEvent>){
+    loop {
+        clear_background(BLACK);
+    
+        println!("nigga client");
+
+        client_data.get_game_state();
+        std::thread::sleep(Duration::from_micros(5000));
+    }
 }
 
 fn server_loop(server_data:&mut network::ServerData<ServerEvent>){
+    loop{
+        // clear_background(BLACK);
+        
+        // println!("nigga");
+        
+        let v = server_data.update_and_get_input();
+        for i in v.iter_mut(){
+            if i.key_pressed(Keys::Up){
+                println!("up");
+            }
+        }
+        
+        std::thread::sleep(Duration::from_micros(5000));
+    }
+}
 
+fn input_macroquad() ->Option<network::PlayerEvent>{
+    // flere keys kan trykkes samtidig
+    if let Some(k) = get_last_key_pressed() {
+        use PlayerEvent::*;
+        use network::Keys::*;
+        return Some(match k {
+            KeyCode::Up => Pressed(Up),
+            KeyCode::Down => Pressed(Down),
+            KeyCode::Right => Pressed(Right),
+            KeyCode::Left => Pressed(Left),
+            KeyCode::W => Pressed(W),
+            KeyCode::A => Pressed(A),
+            KeyCode::S => Pressed(S),
+            KeyCode::D => Pressed(D),
+            KeyCode::Space => Pressed(Space),
+            _ => PlayerEvent::Unknown,
+        })
+    }
+    
+    if is_mouse_button_pressed(MouseButton::Left) {
+        return Some(PlayerEvent::MouseLeft(
+            mouse_position().0,
+            mouse_position().1)
+        )
+    }
+    
+    if is_mouse_button_pressed(MouseButton::Right) {
+        return Some(PlayerEvent::MouseRight(
+            mouse_position().0,
+            mouse_position().1)
+        )
+    }
+    None
 }
