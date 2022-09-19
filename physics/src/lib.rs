@@ -36,11 +36,31 @@ pub enum Shape{
     Rect(Rect),
 }
 
+/// Roterer en vektor til en gitt vinkel a
+pub fn rotation_fun(r:Rect, corner:(f32,f32)) -> (f32, f32) {
+    // The inputs for rotating a vector in a 2d plane
+    let angle = (r.a * (std::f32::consts::PI)/180.0);
+    let rot_2d = (f32::cos(angle), - f32::sin(angle), f32::sin(angle), f32::cos(angle));
+
+    let corner =  ((f32::cos(angle) * corner.0  - f32::sin(angle) * corner.1),
+                            ( f32::sin(angle) * corner.0 +  f32::cos(angle) * corner.1));
+    return corner;
+}
+
+/// retunerer en linjer funksjon m, b
+pub fn lin_funk(p1: (f32,f32), p2: (f32,f32)) -> (f32, f32) {
+    let m = (p1.1 - p2.1) / (p1.0 - p2.0);
+    let b = p1.1 - (m * p1.0);
+    //println!("m and b {} {}",m, b);
+    return (m,b);
+}
+
+
 /// sier om to former er inni hverandre
 pub fn intersection(a:Shape, b:Shape)->bool{
     match (a, b) {
         (Point(a), Point(b))=>{
-            todo!(); // betyr dette gjøres senere?
+            todo!(); // betyr dette gjøres senere
         }
         (Point(p), Circle(c))|
         (Circle(c), Point(p))=>{
@@ -57,9 +77,53 @@ pub fn intersection(a:Shape, b:Shape)->bool{
                 p.y < a.center.y + a.ry &&
                 p.y > a.center.y - a.ry
         }
-        (Point(p), Rect(r))|
-        (Rect(r), Point(p))=>{
-            todo!();
+        (Point(p), Rect(mut r))|
+        (Rect(mut r), Point(p))=>{
+            r.ry = r.ry/2.0;
+            let mut corners_tl = ((- r.rx), (-r.ry));
+            let mut corners_bl = ((- r.rx), ( r.ry));
+            let mut corners_tr = ((r.rx), (-r.ry));
+            let mut corners_br = ((r.rx), ( r.ry));
+
+            //println!("c1 {} {}",corners_tl.0, corners_tl.1);
+
+            corners_tl = rotation_fun(r, corners_tl);
+            corners_bl = rotation_fun(r, corners_bl);
+            corners_tr = rotation_fun(r, corners_tr);
+            corners_br = rotation_fun(r, corners_br);
+
+
+
+            corners_tl = (r.center.x + corners_tl.0 , r.center.y + corners_tl.1);
+            corners_bl = (r.center.x + corners_bl.0 , r.center.y + corners_bl.1);
+            corners_tr = (r.center.x + corners_tr.0 , r.center.y + corners_tr.1);
+            corners_br = (r.center.x + corners_br.0 , r.center.y + corners_br.1);
+
+
+            let line1 = lin_funk(corners_tl, corners_tr);
+            let line2 = lin_funk(corners_bl, corners_br);
+            let line3 = lin_funk(corners_tl, corners_bl);
+            let line4 = lin_funk(corners_tr, corners_br);
+
+
+            return if
+            line1.0 * p.x + line1.1 > p.y &&
+                line2.0 * p.x + line2.1 < p.y
+                ||
+                line1.0 * p.x + line1.1 < p.y &&
+                    line2.0 * p.x + line2.1 > p.y {
+                if line3.0 * p.x + line3.1 < p.y &&
+                    line4.0 * p.x + line4.1 > p.y
+                    ||
+                    line4.0 * p.x + line4.1 < p.y &&
+                        line3.0 * p.x + line3.1 > p.y {
+                    true
+                } else { false }
+            } else { false }
+
+
+
+
         }
         (Circle(a), Circle(b))=>{
             return

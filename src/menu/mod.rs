@@ -68,18 +68,23 @@ pub fn tick(
             y: 400.0,
         },
         rx: 50.0,
-        ry: 50.0,
+        ry: 180.0,
         a: 40.0
     };
 
 
-    draw_poly_lines(o.center.x, o.center.y, 2, 70.0, 0.0, 70.0, RED);
+    draw_poly_lines(o.center.x, o.center.y, 2, o.rx, o.a, o.ry,
+        if intersection(Shape::Rect(o),
+                    Shape::Point(physics::Vector2d{x:mouse_position().0, y:mouse_position().1})){GREEN} else { BLUE });
+
     draw_rectangle(b.center.x - b.rx, b.center.y - b.ry, b.rx * 2.0, b.ry * 2.0,
     if intersection(Shape::AABB(b),
                     Shape::Point(physics::Vector2d{x:mouse_position().0, y:mouse_position().1})){GREEN} else { BLUE });
-
+    /*
     draw_circle(c.center.x, c.center.y, c.r,
                 if intersection(Shape::AABB(p), Shape::Circle(c)) {WHITE} else {RED});
+
+     */
     /*
     draw_circle(q.center.x, q.center.y, q.r,
                 if intersection(Shape::Circle(q), Shape::Circle(c)) {BLUE} else {GREEN});
