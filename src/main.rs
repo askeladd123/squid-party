@@ -14,55 +14,13 @@ use macroquad::prelude::*;
 use common::input;
 use player::Player;
 use crate::common::MenuMode;
-use crate::network::{Client, Keys, PlayerEvent, ServerData, Waiter};
+use crate::network::{Client, Keys, PlayerEvent, Kjetil, Waiter};
 
 // TODO flytte kode ut i andre filer (så man kan samarbeide)
 
 #[macroquad::main("BetaDev")]
 async fn main() {
     let mut common_data = common::Data::new(common::files::Data::new().await);
-    let mut players: Vec<Player> = vec![
-        Player {
-            position: physics::Vector2d { x: 100.0, y: 100.0 },
-            speed: physics::Vector2d { x: 0.0, y: 0.0 },
-            acceleration: 1.2,
-        },
-        Player {
-            position: physics::Vector2d { x: 100.0, y: 100.0 },
-            speed: physics::Vector2d { x: 0.0, y: 0.0 },
-            acceleration: 1.0,
-        },
-        Player {
-            position: physics::Vector2d { x: 100.0, y: 100.0 },
-            speed: physics::Vector2d { x: 0.0, y: 0.0 },
-            acceleration: 0.8,
-        },
-        Player {
-            position: physics::Vector2d { x: 100.0, y: 100.0 },
-            speed: physics::Vector2d { x: 0.0, y: 0.0 },
-            acceleration: 0.6,
-        },
-        Player {
-            position: physics::Vector2d { x: 100.0, y: 100.0 },
-            speed: physics::Vector2d { x: 0.0, y: 0.0 },
-            acceleration: 0.4,
-        },
-    ];
-    
-    
-    /*
-    
-    loop
-        menu mode
-            main
-            singleplayer
-            multiplayer
-                valg
-                    host -> ingame
-                    join
-            join
-    
-     */
     
     loop {
         match common_data.mode {
@@ -100,15 +58,17 @@ async fn main() {
                 
                 loop {
                     match client.get_game_state() {
-                        ServerEvent::Lobby => {
+                        ServerEvent::Lobby(_) => {
                             
                             let mut lobby_data = lobby::Data::new();
                             
-                            while *client.get_game_state() == ServerEvent::Lobby {
+                            while let ServerEvent::Lobby(ref data) = client.get_game_state() {
+                                
+                                
+                                // lobby::tick(&mut lobby_data, &mut common_data, &mut players);
+                                lobby::graphics(&common_data.files, & data);
                                 
                                 client.send_input(input_macroquad);
-                                
-                                lobby::tick(&mut lobby_data, &mut common_data, &mut players);
                                 
                                 next_frame().await;
                             }
@@ -201,28 +161,41 @@ async fn main() {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 enum ServerEvent {
-    Lobby/*(lobby::State)*/,
+    Lobby(lobby::State),
     Platform1/*(platform1::State)*/,
     Hjornefotball/*(hjornefotball::State)*/,
 }
 
 impl Default for ServerEvent {
     fn default() -> Self {
-        Self::Lobby
+        ServerEvent::Lobby(lobby::State::new())
     }
 }
 
-fn server_loop(server_data: &mut network::ServerData<ServerEvent>) {
+fn server_loop(server_data: &mut network::Kjetil<ServerEvent>) {
+    let mut mode = ServerEvent::default();
+    
     loop {
-        let v = server_data.update_and_get_input();
-        for i in v.iter_mut() {
-            if i.key_pressed(Keys::Up) {
-                println!("up");
+        match mode {
+            ServerEvent::Lobby(_) => {
+                
+                let mut lobby_data = lobby::State::new();
+                
+                while let ServerEvent::Lobby(ref mut t) = mode {
+                    lobby::logic(server_data.update_and_get_input(), &mut *t);
+                    server_data.send_game_state(&mode);
+                    std::thread::sleep(Duration::from_millis(16));
+                }
+            }
+            ServerEvent::Platform1 => {
+                todo!();
+            }
+            ServerEvent::Hjornefotball => {
+                todo!();
             }
         }
-        
         std::thread::sleep(Duration::from_millis(16));
     }
 }

@@ -7,6 +7,7 @@ use std::time::Duration;
 use std::collections::{HashMap};
 use std::io::{Error, Read, Write};
 use std::marker::PhantomData;
+use std::ops::Deref;
 use std::sync::mpsc::{Receiver, TryRecvError};
 use macroquad::input::{get_char_pressed, get_last_key_pressed, mouse_position};
 use macroquad::prelude::{clear_background, is_mouse_button_pressed};
@@ -254,7 +255,7 @@ impl<ServerData> Client<ServerData>
     }
 }
 
-pub fn start_server<T>(ip: &str, server_loop: fn(&mut ServerData<T>))
+pub fn start_server<T>(ip: &str, server_loop: fn(&mut Kjetil<T>))
                              where T: Serialize + DeserializeOwned + Send + 'static {
     
     // åpne forbindelse
@@ -283,7 +284,7 @@ pub fn start_server<T>(ip: &str, server_loop: fn(&mut ServerData<T>))
             }
         }).unwrap();
         
-        let mut server_data = ServerData {
+        let mut server_data = Kjetil {
             connections: Vec::<Connection<T>>::new(),
             player_inputs: Vec::<PlayerInput>::new(),
             r_stream,
@@ -293,13 +294,13 @@ pub fn start_server<T>(ip: &str, server_loop: fn(&mut ServerData<T>))
     }).unwrap();
 }
 
-pub struct ServerData<T: Serialize + DeserializeOwned + Send + 'static> {
-    connections: Vec<Connection<T>>,
+pub struct Kjetil<ServerData: Serialize + DeserializeOwned + Send + 'static> {
+    connections: Vec<Connection<ServerData>>,
     player_inputs: Vec<PlayerInput>,
     r_stream: mpsc::Receiver<TcpStream>,
 }
 
-impl<T> ServerData<T> where T: Serialize + DeserializeOwned + Send + 'static {
+impl<ServerData> Kjetil<ServerData> where ServerData: Serialize + DeserializeOwned + Send + 'static + Clone {
     pub fn update_and_get_input(&mut self) -> &mut Vec<PlayerInput> {
     
         match self.r_stream.try_recv() {
@@ -333,6 +334,13 @@ impl<T> ServerData<T> where T: Serialize + DeserializeOwned + Send + 'static {
         // }
         
         &mut self.player_inputs
+    }
+    
+    pub fn send_game_state(& self, state: & ServerData){
+        
+        for i in self.connections.iter(){
+            i.sender_game_state.send((*state).clone()).unwrap();
+        }
     }
 }
 
