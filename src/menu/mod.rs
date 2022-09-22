@@ -1,5 +1,6 @@
 use macroquad::prelude::*;
-use physics::{AABB, intersection, Shape};
+use physics::{AABB, intersection, Shapes, Vec2d};
+use physics::Shapes::Circle;
 use crate::common;
 use crate::common::input;
 
@@ -28,7 +29,7 @@ pub fn tick(
 
     let b = AABB{
             center:
-            physics::Vector2d{
+            physics::Vec2d {
                 x:300.0,
                 y:300.5,
             },
@@ -37,7 +38,7 @@ pub fn tick(
         };
     let p = AABB{
         center:
-        physics::Vector2d{
+        physics::Vec2d {
             x:300.0,
             y:300.5,
         },
@@ -46,7 +47,7 @@ pub fn tick(
     };
     let c = physics::Circle{
         center:
-        physics::Vector2d {
+        physics::Vec2d {
             x: mouse_position().0,
             y: mouse_position().1,
         },
@@ -54,7 +55,7 @@ pub fn tick(
     };
     let q = physics::Circle{
         center:
-        physics::Vector2d {
+        physics::Vec2d {
             x: 500.0,
             y: 500.0,
         },
@@ -63,7 +64,7 @@ pub fn tick(
 
     let o = physics::Rect{
         center:
-        physics::Vector2d {
+        physics::Vec2d {
             x: 400.0,
             y: 400.0,
         },
@@ -73,13 +74,37 @@ pub fn tick(
     };
 
 
-    draw_poly_lines(o.center.x, o.center.y, 2, o.rx, o.a, o.ry,
-        if intersection(Shape::Rect(o),
-                    Shape::Point(physics::Vector2d{x:mouse_position().0, y:mouse_position().1})){GREEN} else { BLUE });
-
-    draw_rectangle(b.center.x - b.rx, b.center.y - b.ry, b.rx * 2.0, b.ry * 2.0,
-    if intersection(Shape::AABB(b),
-                    Shape::Point(physics::Vector2d{x:mouse_position().0, y:mouse_position().1})){GREEN} else { BLUE });
+    use physics::{Circle, intersection};
+    let bjorn = Circle{ center: Vec2d::from(mouse_position()), r:20.0};
+    let kalle = Circle{ center: Vec2d {x:100.0, y:100.0}, r:20.0};
+    
+    draw_circle(
+        bjorn.center.x,
+        bjorn.center.y,
+        bjorn.r,
+        if intersection(bjorn, kalle){GREEN} else {RED}
+    );
+    
+    draw_circle(
+        kalle.center.x,
+        kalle.center.y,
+        kalle.r,
+        GRAY
+    );
+    
+    // draw_poly_lines(o.center.x, o.center.y, 2, o.rx, o.a, o.ry,
+    //     if intersection(
+    //         o,
+    //         physics::Vector2d{
+    //             x:mouse_position().0,
+    //             y:mouse_position().1})
+    //     {GREEN} else { BLUE });
+    //
+    // draw_rectangle(b.center.x - b.rx, b.center.y - b.ry, b.rx * 2.0, b.ry * 2.0,
+    // if intersection(
+    //     b,
+    //     physics::Vector2d{x:mouse_position().0, y:mouse_position().1})
+    // {GREEN} else { BLUE });
     /*
     draw_circle(c.center.x, c.center.y, c.r,
                 if intersection(Shape::AABB(p), Shape::Circle(c)) {WHITE} else {RED});

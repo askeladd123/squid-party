@@ -1,39 +1,143 @@
-extern crate core;
-use Shape::*;
+
+pub trait Shape{
+    fn get_shape(& self)->Shapes;
+}
+
+#[derive(Copy, Clone)]
+pub enum Shapes {
+    Point(Vec2d),
+    Circle(Circle),
+    AABB(AABB),
+    Rect(Rect),
+}
+
+impl Shape for Shapes{
+    fn get_shape(&self) -> Shapes {
+        *self
+    }
+}
 
 // selvforklarende, tar inn x og y posisjonen til noe på skjermen
 #[derive(Copy, Clone)]
-pub struct Vector2d{
+pub struct Vec2d {
     pub x:f32,
     pub y:f32
 }
+
+impl Vec2d {
+    pub fn from((x, y):(f32, f32))->Self{
+        Vec2d { x, y }
+    }
+}
+
+impl Shape for Vec2d {
+    fn get_shape(&self) -> Shapes {
+        Shapes::Point(*self)
+    }
+}
+
+impl Vec2d {
+    fn len()->f32{
+        todo!() // euclidian distance
+    }
+}
+
+impl core::ops::Add for Vec2d{
+    type Output = Self;
+    
+    fn add(self, rhs: Self) -> Self::Output {
+        todo!() // eks: new_vec2d = this_vec2d + other_vec2d;
+    }
+}
+
+impl core::ops::Sub for Vec2d{
+    type Output = Self;
+    
+    fn sub(self, rhs: Self) -> Self::Output {
+        todo!() // eks: new_vec2d = this_vec2d - other_vec2d;
+    }
+}
+
+impl core::ops::AddAssign for Vec2d{
+    fn add_assign(&mut self, rhs: Self) {
+        todo!() // eks: this_vec2d += other_vec2d;
+    }
+}
+
+impl core::ops::SubAssign for Vec2d{
+    fn sub_assign(&mut self, rhs: Self) {
+        todo!() // eks: this_vec2d -= other_vec2d
+    }
+}
+
+impl core::ops::Mul<f32> for Vec2d{
+    type Output = Self;
+    
+    fn mul(self, rhs: f32) -> Self::Output {
+        todo!() // eks: let new_vec2d = old_vec2d * 15.0;
+    }
+}
+
+impl core::ops::Div<f32> for Vec2d{
+    type Output = Self;
+    
+    fn div(self, rhs: f32) -> Self::Output {
+        todo!() // eks: let new_vec2d = old_vec2d / 15.0;
+    }
+}
+
+impl core::ops::MulAssign<f32> for Vec2d{
+    fn mul_assign(&mut self, rhs: f32) {
+        todo!() // eks: let new_vec2d *= 15.0;
+    }
+}
+
+impl core::ops::DivAssign<f32> for Vec2d{
+    fn div_assign(&mut self, rhs: f32) {
+        todo!() // eks: let new_vec2d /= 15.0;
+    }
+}
+
 // class for alle sirkler, tar inn en vector2d + radiusen
 #[derive(Copy, Clone)]
 pub struct Circle{
-    pub center:Vector2d,
+    pub center: Vec2d,
     pub r:f32
 }
+
+impl Shape for Circle{
+    fn get_shape(&self) -> Shapes {
+        Shapes::Circle(*self)
+    }
+}
+
 #[derive(Copy, Clone)]
 pub struct AABB{
-    pub center:Vector2d,
+    pub center: Vec2d,
     pub rx:f32,
     pub ry:f32
 }
+
+impl Shape for AABB{
+    fn get_shape(&self) -> Shapes {
+        Shapes::AABB(*self)
+    }
+}
+
 //class for alle rektangler, tar inn en vector2d + hvor mye ut til siden / opp + vinkel
 #[derive(Copy, Clone)]
 pub struct Rect{
-    pub center:Vector2d,
+    pub center: Vec2d,
     pub rx:f32,
     pub ry:f32,
     /** vinkel på boksen */
     pub a:f32
 }
-#[derive(Copy, Clone)]
-pub enum Shape{
-    Point(Vector2d),
-    Circle(Circle),
-    AABB(AABB),
-    Rect(Rect),
+
+impl Shape for Rect{
+    fn get_shape(&self) -> Shapes {
+        Shapes::Rect(*self)
+    }
 }
 
 /// Roterer en vektor til en gitt vinkel a
@@ -57,8 +161,11 @@ pub fn lin_funk(p1: (f32,f32), p2: (f32,f32)) -> (f32, f32) {
 
 
 /// sier om to former er inni hverandre
-pub fn intersection(a:Shape, b:Shape)->bool{
-    match (a, b) {
+pub fn intersection<A: Shape, B: Shape>(a: A, b: B) ->bool{
+    
+    use Shapes::*;
+    
+    match (a.get_shape(), b.get_shape()) {
         (Point(a), Point(b))=>{
             todo!(); // betyr dette gjøres senere
         }
@@ -120,10 +227,6 @@ pub fn intersection(a:Shape, b:Shape)->bool{
                     true
                 } else { false }
             } else { false }
-
-
-
-
         }
         (Circle(a), Circle(b))=>{
             return
@@ -133,6 +236,7 @@ pub fn intersection(a:Shape, b:Shape)->bool{
         }
         (Circle(c), AABB(a))|
         (AABB(a), Circle(c))=>{
+            
             if c.center.x <= a.center.x + a.rx && c.center.x >= a.center.x - a.rx{
                 return if
                 c.center.y > a.center.y + a.ry {
@@ -220,126 +324,6 @@ pub fn intersection(a:Shape, b:Shape)->bool{
 
 /// Gir normalen til kollisjons-overflaten mellom to former,
 /// og hvor mye de er inni hverandre
-pub fn collision_normal_and_overlap(a:Shape, b:Shape)->(Vector2d, f32){
+pub fn collision_normal_and_overlap<A: Shape, B:Shape>(a: A, b: B) ->(Vec2d, f32){
     todo!();
-}
-
-#[cfg(test)]
-mod tests{
-    
-    use crate::*;
-    
-    #[test]
-    fn intersection_point_point(){
-        assert_eq!(
-            intersection(
-                Point(Vector2d{x:69.0, y:21.0}),
-                Point(Vector2d{x:20.0, y:50.0})
-            ), false);
-        assert_eq!(
-            intersection(
-                Point(Vector2d{x:69.0, y:21.0}),
-                Point(Vector2d{x:69.0, y:21.0}),
-            ),true);
-    }
-    
-    #[test]
-    fn intersection_point_aabb(){
-        assert_eq!(
-            intersection(
-                Point(Vector2d{x: 40.0, y:50.0}),
-                AABB(AABB{center:Vector2d{x:-20.0, y:-50.0}, rx:30.0, ry:30.0})
-            ), false);
-        assert_eq!(
-            intersection(
-                Point(Vector2d{x: 40.0, y:50.0}),
-                AABB(AABB{center:Vector2d{x:20.0, y:50.0}, rx:40.0, ry:40.0})
-            ), true);
-        assert_eq!(
-            intersection(
-                Point(Vector2d{x: 10.0, y:20.0}),
-                AABB(AABB{center:Vector2d{x:100.0, y:50.0}, rx:40.0, ry:40.0})
-            ), false);
-        assert_eq!(
-            intersection(
-                Point(Vector2d{x: 70.0, y:80.0}),
-                AABB(AABB{center:Vector2d{x:100.0, y:50.0}, rx:40.0, ry:40.0})
-            ), true);
-    }
-    
-    #[test]
-    fn intersection_aabb_aabb(){
-        assert_eq!(
-            intersection(
-                AABB(AABB{center:Vector2d{x:0.0, y:0.0}, rx: 10.0, ry: 10.0 }),
-                AABB(AABB{center:Vector2d{x:25.0, y:0.0}, rx: 10.0, ry: 10.0})
-            ), false);
-        assert_eq!(
-            intersection(
-                AABB(AABB{center:Vector2d{x:0.0, y:0.0}, rx: 10.0, ry: 10.0 }),
-                AABB(AABB{center:Vector2d{x:18.0, y:0.0}, rx: 10.0, ry: 10.0})
-            ), true);
-        assert_eq!(
-            intersection(
-                AABB(AABB{center:Vector2d{x:100.0, y:100.0}, rx: 10.0, ry: 10.0 }),
-                AABB(AABB{center:Vector2d{x:40.0, y:40.0}, rx: 10.0, ry: 10.0})
-            ), false);
-        assert_eq!(
-            intersection(
-                AABB(AABB{center:Vector2d{x:100.0, y:100.0}, rx: 20.0, ry: 20.0 }),
-                AABB(AABB{center:Vector2d{x:110.0, y:90.0}, rx: 20.0, ry: 20.0})
-            ), true);
-    }
-
-    #[test]
-    fn intersection_aabb_circle(){
-        assert_eq!(
-            intersection(
-                AABB(AABB{center:Vector2d{x:0.0, y:0.0}, rx: 10.0, ry: 10.0 }),
-                Circle(Circle{center:Vector2d{x:70.0, y:100.0}, r:12.0})
-            ), false);
-
-        assert_eq!(
-            intersection(
-                AABB(AABB{center:Vector2d{x:0.0, y:0.0}, rx: 10.0, ry: 10.0 }),
-                Circle(Circle{center:Vector2d{x:10.0, y:12.0}, r:12.0})
-            ), true);
-        /*
-        assert_eq!(
-            intersection(
-                AABB(AABB{center:Vector2d{x:100.0, y:100.0}, rx: 10.0, ry: 10.0 }),
-                Circle(Circle{center:Vector2d{x:98.0, y:100.0}, r:12.0})
-            ), true);
-        assert_eq!(
-            intersection(
-                AABB(AABB{center:Vector2d{x:100.0, y:100.0}, rx: 20.0, ry: 20.0 }),
-                Circle(Circle{center:Vector2d{x:98.0, y:100.0}, r:12.0})
-            ), true);
-
-         */
-    }
-    
-    #[test]
-    fn intersection_circle_circle(){
-        assert_eq!(
-            intersection(
-                Circle(Circle{center:Vector2d{x:40.0, y:30.0}, r:10.0}),
-                Circle(Circle{center:Vector2d{x:70.0, y:100.0}, r:12.0})
-            ), true);
-        assert_eq!(
-            intersection(
-                Circle(Circle{center:Vector2d{x:40.0, y:30.0}, r:10.0}),
-                Circle(Circle{center:Vector2d{x:50.0, y:20.0}, r:40.0})
-            ), true);
-        assert_eq!(
-            intersection(
-                Circle(Circle{center:Vector2d{x:40.0, y:100.0}, r:10.0}),
-                Circle(Circle{center:Vector2d{x:50.0, y:20.0}, r:20.0})
-            ), false);
-        assert_eq!(
-            intersection(
-                Circle(Circle{center:Vector2d{x:40.0, y:100.0}, r:100.0}),
-                Circle(Circle{center:Vector2d{x:70.0, y:60.0}, r:20.0})
-            ), true);
-    }
 }

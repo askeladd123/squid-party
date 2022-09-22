@@ -14,36 +14,32 @@ use crate::common::Mode;
 async fn main() {
     
     use physics::*;
-    println!("intersection: {}", intersection(
-        Shape::AABB(AABB{center:Vector2d{x:0.0, y:0.0}, rx:100.0, ry:100.0}),
-        Shape::AABB(AABB{center:Vector2d{x:10.0, y:10.0}, rx:100.0, ry:100.0}),
-    ));
     
     let mut common_data = common::Data::new(common::files::Data::new().await);
     let mut players: Vec<Player> = vec![
         Player{
-            position: physics::Vector2d{x:100.0, y: 100.0},
-            speed: physics::Vector2d{x:0.0, y:0.0},
+            position: physics::Vec2d {x:100.0, y: 100.0},
+            speed: physics::Vec2d {x:0.0, y:0.0},
             acceleration: 1.2
         },
         Player{
-        position: physics::Vector2d{x:100.0, y: 100.0},
-        speed: physics::Vector2d{x:0.0, y:0.0},
+        position: physics::Vec2d {x:100.0, y: 100.0},
+        speed: physics::Vec2d {x:0.0, y:0.0},
         acceleration: 1.0
         },
         Player {
-            position: physics::Vector2d { x: 100.0, y: 100.0 },
-            speed: physics::Vector2d{ x: 0.0, y: 0.0 },
+            position: physics::Vec2d { x: 100.0, y: 100.0 },
+            speed: physics::Vec2d { x: 0.0, y: 0.0 },
             acceleration: 0.8
         },
         Player {
-            position: physics::Vector2d { x: 100.0, y: 100.0 },
-            speed: physics::Vector2d{ x: 0.0, y: 0.0 },
+            position: physics::Vec2d { x: 100.0, y: 100.0 },
+            speed: physics::Vec2d { x: 0.0, y: 0.0 },
             acceleration: 0.6
         },
         Player {
-            position: physics::Vector2d { x: 100.0, y: 100.0 },
-            speed: physics::Vector2d{ x: 0.0, y: 0.0 },
+            position: physics::Vec2d { x: 100.0, y: 100.0 },
+            speed: physics::Vec2d { x: 0.0, y: 0.0 },
             acceleration: 0.4
         },
 
