@@ -3,6 +3,7 @@ use physics::{AABB, intersection, Shapes, Vec2d};
 use physics::Shapes::Circle;
 use crate::common;
 use crate::common::input;
+use crate::drawing::draw_shape;
 
 
 pub struct Data{
@@ -27,96 +28,31 @@ pub fn tick(
     // Gir Graphics funksjonen informasjon om hvilken knapp man holder over
     graphics(data.selected_button);
 
-    let b = AABB{
-            center:
-            physics::Vec2d {
-                x:300.0,
-                y:300.5,
-            },
-            rx:50.1,
-            ry:40.1,
-        };
-    let p = AABB{
-        center:
-        physics::Vec2d {
-            x:300.0,
-            y:300.5,
-        },
-        rx:50.1,
-        ry:40.1,
-    };
-    let c = physics::Circle{
-        center:
-        physics::Vec2d {
-            x: mouse_position().0,
-            y: mouse_position().1,
-        },
-        r:55.0,
-    };
-    let q = physics::Circle{
-        center:
-        physics::Vec2d {
-            x: 500.0,
-            y: 500.0,
-        },
-        r:55.0,
-    };
-
-    let o = physics::Rect{
-        center:
-        physics::Vec2d {
-            x: 400.0,
-            y: 400.0,
-        },
-        rx: 50.0,
-        ry: 180.0,
-        a: 40.0
-    };
-
-
-    use physics::{Circle, intersection};
-    let bjorn = Circle{ center: Vec2d::from(mouse_position()), r:20.0};
+    use physics::{Vec2d, Circle, AABB, Rect, intersection};
+    
+    let alfred = Vec2d::from(mouse_position());
+    let bjorn = Circle{ center:mouse_position().into(), r:20.0};
     let kalle = Circle{ center: Vec2d {x:100.0, y:100.0}, r:20.0};
+    let gunnlaug = AABB{ center: Vec2d{x:300.0, y:150.0}, rx: 40.0, ry: 70.0 };
+    let smegfrid = Rect{ center: Vec2d{x:50.0, y:420.0}, rx: 50.0, ry: 30.0, a: 33.33};
     
-    draw_circle(
-        bjorn.center.x,
-        bjorn.center.y,
-        bjorn.r,
-        if intersection(bjorn, kalle){GREEN} else {RED}
+    draw_shape(kalle, GRAY);
+    draw_shape(gunnlaug, GRAY);
+    draw_shape(smegfrid, GRAY);
+    draw_shape(bjorn,
+               if
+               intersection(bjorn, kalle) ||
+                   intersection(bjorn, gunnlaug) {GREEN}
+               else {RED}
+    );
+    draw_shape(alfred,
+    if
+    intersection(alfred, kalle) ||
+        intersection(alfred, gunnlaug) ||
+        intersection(alfred, smegfrid) {GREEN}
+        else {RED}
     );
     
-    draw_circle(
-        kalle.center.x,
-        kalle.center.y,
-        kalle.r,
-        GRAY
-    );
-    
-    // draw_poly_lines(o.center.x, o.center.y, 2, o.rx, o.a, o.ry,
-    //     if intersection(
-    //         o,
-    //         physics::Vector2d{
-    //             x:mouse_position().0,
-    //             y:mouse_position().1})
-    //     {GREEN} else { BLUE });
-    //
-    // draw_rectangle(b.center.x - b.rx, b.center.y - b.ry, b.rx * 2.0, b.ry * 2.0,
-    // if intersection(
-    //     b,
-    //     physics::Vector2d{x:mouse_position().0, y:mouse_position().1})
-    // {GREEN} else { BLUE });
-    /*
-    draw_circle(c.center.x, c.center.y, c.r,
-                if intersection(Shape::AABB(p), Shape::Circle(c)) {WHITE} else {RED});
-
-     */
-    /*
-    draw_circle(q.center.x, q.center.y, q.r,
-                if intersection(Shape::Circle(q), Shape::Circle(c)) {BLUE} else {GREEN});
-
-
-     */
-
 }
 
 fn logic(

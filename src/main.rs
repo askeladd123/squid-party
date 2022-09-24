@@ -4,6 +4,7 @@ mod player;
 mod platform1;
 mod common;
 mod hjornefotball;
+mod drawing;
 
 use macroquad::prelude::*;
 use common::input;
