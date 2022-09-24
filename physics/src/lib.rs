@@ -1,3 +1,10 @@
+//! **Physics XXL MEGA 3000**
+//! ---
+//!Funksjonalitet for kollisjon, litt matte og etterhvert fysikk.
+//!
+//! Biblioteket inneholder funksjoner som opererer på forskjellige structs,
+//! blant annet: *Point, Circle, AABB* (Axis Aligned Bounding Box), *Rect*,
+//! men også alt annet som implementerer et *Trait* som heter *Shape*
 
 pub trait Shape{
     fn get_shape(& self)->Shapes;
@@ -17,15 +24,22 @@ impl Shape for Shapes{
     }
 }
 
-// selvforklarende, tar inn x og y posisjonen til noe på skjermen
+/**
+Todimensjonal vektor: for å gjøre matteoperasjoner enklere.
+
+Tips: se funksjonene:
+* `len`,
+* `from`: konvertere fra tuple,
+* `add`, `mul` osv.: operator overloading: du kan bruke vektor med "+", "*" osv.
+ */
 #[derive(Copy, Clone)]
 pub struct Vec2d {
     pub x:f32,
     pub y:f32
 }
 
-impl Vec2d {
-    pub fn from((x, y):(f32, f32))->Self{
+impl From<(f32, f32)> for Vec2d{
+    fn from((x, y): (f32, f32)) -> Self {
         Vec2d { x, y }
     }
 }
@@ -161,7 +175,7 @@ pub fn lin_funk(p1: (f32,f32), p2: (f32,f32)) -> (f32, f32) {
 
 
 /// sier om to former er inni hverandre
-pub fn intersection<A: Shape, B: Shape>(a: A, b: B) ->bool{
+pub fn intersection(a: impl Shape, b: impl Shape) ->bool{
     
     use Shapes::*;
     
