@@ -206,7 +206,6 @@ fn input_macroquad() -> Option<network::PlayerEvent> {
     // flere keys kan trykkes samtidig
     if let Some(k) = get_last_key_pressed() {
         
-        println!("client registered key pressed");
         use PlayerEvent::*;
         use network::Keys::*;
         return Some(match k {

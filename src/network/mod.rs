@@ -17,88 +17,7 @@ use serde::de::DeserializeOwned;
 use crate::{KeyCode, MouseButton, ServerEvent};
 use crate::network::Mode::Platform1;
 
-/*
-
-startup
-* client/server: connect...
-
-loop
-* client: get player input - send input data to server
-- server: convert input data to api object PlayerInput
-- server: route PlayerInput to corresponding Game Mode logic function
-- server: corresponding Game Mode logic function returns UserData
-- server: serialize UserData and send to client
-- client: deserialize, route and display
-
-sending system: enum MetaData + struct UserData
-
-*/
-
 const PORT: &str = "55555";
-
-// pub async fn start_client<T>(ip: String, client_loop: fn(&mut Client<T>))
-//                                 where T: Serialize + DeserializeOwned + Send + 'static + Default {
-//
-//     // connect to server
-//     let (sender, receiver) = mpsc::channel();
-//     let sender_clone = sender.clone();
-//     let waiter = thread::Builder::new().name("client, waiter".to_string()).spawn(move ||
-//         loop {
-//             if let Ok(stream) = TcpStream::connect(
-//                 chain(
-//                     ip.as_str(),
-//                     ":",
-//                     PORT,
-//                 )) {
-//                 sender_clone.send(stream).unwrap();
-//                 break;
-//             }
-//             println!("client waiter couldn't find connection... trying again");
-//             thread::sleep(Duration::from_secs(3));
-//         }
-//     ).unwrap();
-//
-//     // waiting for connection
-//     while let Err(TryRecvError::Empty) = receiver.try_recv() {
-//         // TODO: wating screen
-//         println!("waiting for connection");
-//         thread::sleep(Duration::from_secs(4));
-//     }
-//
-//     let mut stream = receiver.recv().unwrap();
-//
-//     waiter.join().unwrap();
-//
-//     // connection threads
-//     println!("connection established, (hopefully)");
-//
-//     let mut stream_out = stream.try_clone().unwrap();
-//     let (s_out, r_out) = mpsc::channel();
-//     thread::Builder::new().name("client, out".to_string()).spawn(move || loop {
-//         let event: PlayerEvent = r_out.recv().unwrap();
-//         stream_out.write_all(
-//             &bincode::serialize(&event).unwrap()
-//         ).unwrap();
-//     }).unwrap();
-//
-//     let mut stream_in = stream.try_clone().unwrap();
-//     let (s_in, r_in) = mpsc::channel();
-//     thread::Builder::new().name("client, in".to_string()).spawn(move || {
-//         let mut buffer = [0u8; 512];
-//         stream_in.read(&mut buffer).unwrap();
-//
-//         let event: T = bincode::deserialize(&buffer).unwrap();
-//         s_in.send(event).unwrap();
-//     }).unwrap();
-//
-//     let mut client_data = Client {
-//         s_out,
-//         r_in,
-//         last_data: ServerEvent::default(),
-//     };
-//
-//     client_loop(&mut client_data);
-// }
 
 pub struct Waiter<ServerData: Default + Serialize + DeserializeOwned + Send + 'static> {
     r_stream: Receiver<TcpStream>,
@@ -191,7 +110,6 @@ impl<ServerData> Client<ServerData>
     pub fn send_input(&mut self, get_input: fn()->Option<PlayerEvent>){
         
         if let Some(e) = get_input(){
-            println!("client sending {e:?}");
             
             self.s_out.send(e).unwrap();
         }
@@ -283,6 +201,7 @@ impl<ServerData> Kjetil<ServerData> where ServerData: Serialize + DeserializeOwn
             player.events.clear();
             
             while let Some(t) = connection.receive() {
+                println!("server got input: {t:?}");
                 player.events.push(t);
             }
         }
