@@ -56,6 +56,8 @@ async fn main() {
                 
                 println!("client found connection bro");
                 
+                // TODO: flytte loopen inn i client, så du kan deklarere variabler lettere?
+                
                 loop {
                     match client.get_game_state() {
                         ServerEvent::Lobby(_) => {
@@ -64,9 +66,8 @@ async fn main() {
                             
                             while let ServerEvent::Lobby(ref data) = client.get_game_state() {
                                 
-                                
                                 // lobby::tick(&mut lobby_data, &mut common_data, &mut players);
-                                lobby::graphics(&common_data.files, & data);
+                                lobby::client(&common_data.files, data);
                                 
                                 client.send_input(input_macroquad);
                                 
@@ -182,11 +183,12 @@ fn server_loop(server_data: &mut network::Kjetil<ServerEvent>) {
             ServerEvent::Lobby(_) => {
                 
                 let mut lobby_data = lobby::State::new();
+                println!("lobby data init mode");
                 
                 while let ServerEvent::Lobby(ref mut t) = mode {
-                    lobby::logic(server_data.update_and_get_input(), &mut *t);
+                    lobby::server(server_data.update_and_get_input(), t);
                     server_data.send_game_state(&mode);
-                    std::thread::sleep(Duration::from_millis(16));
+                    std::thread::sleep(Duration::from_millis(100));
                 }
             }
             ServerEvent::Platform1 => {

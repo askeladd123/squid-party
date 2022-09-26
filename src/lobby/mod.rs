@@ -68,14 +68,12 @@ pub fn tick(data: &mut Data, common: &mut common::Data, players: &mut Vec<Player
 const TEPPE: f32 = 1000.0;
 
 
-pub fn logic(player_inputs: &mut Vec<PlayerInput>, state: &mut State){
+pub fn server(player_inputs: &mut Vec<PlayerInput>, state: &mut State){
     
     const PLAYER_SPEED:f32 = 1.0;
     
     for (input, player)
     in player_inputs.iter_mut().zip(state.players.iter_mut()){
-        
-        player.position.x += 0.1;
         
         // // Ser om spilleren sin posisjon er s
         // // tøre enn teppet sitt
@@ -159,14 +157,12 @@ pub fn logic(player_inputs: &mut Vec<PlayerInput>, state: &mut State){
     }
 }
 
-pub fn graphics(
+pub fn client(
     files: & common::files::Data,
     // player har posisjon og speed lagret som vektorer.
     state: & State,
 ){
     clear_background(BLACK);
-    
-    println!("player: {}", state.players[0].position.x);
     
     let pics = [&files.knut, &files.skag, &files.ask, &files.sig];
     

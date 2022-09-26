@@ -139,10 +139,11 @@ impl<ServerData> Waiter<ServerData>
                 let (s_in, r_in) = mpsc::channel();
                 thread::Builder::new().name("client, in".to_string()).spawn(move || {
                     let mut buffer = [0u8; 512];
-                    stream_in.read(&mut buffer).unwrap();
-        
-                    let event: ServerData = bincode::deserialize(&buffer).unwrap();
-                    s_in.send(event).unwrap();
+                    loop {
+                        stream_in.read(&mut buffer).unwrap();
+                        let event: ServerData = bincode::deserialize(&buffer).unwrap();
+                        s_in.send(event).unwrap();
+                    }
                 }).unwrap();
     
                 Ok(Client {
@@ -201,53 +202,12 @@ impl<ServerData> Client<ServerData>
         // }
     }
     
-    pub fn custom_input_func_macroquad() ->Option<PlayerEvent>{
-        // flere keys kan trykkes samtidig
-        if let Some(k) = get_last_key_pressed() {
-            use PlayerEvent::*;
-            use Keys::*;
-            return Some(match k {
-                KeyCode::Up => Pressed(Up),
-                KeyCode::Down => Pressed(Down),
-                KeyCode::Right => Pressed(Right),
-                KeyCode::Left => Pressed(Left),
-                KeyCode::W => Pressed(W),
-                KeyCode::A => Pressed(A),
-                KeyCode::S => Pressed(S),
-                KeyCode::D => Pressed(D),
-                KeyCode::Space => Pressed(Space),
-                _ => PlayerEvent::Unknown,
-            })
-        }
-    
-        if is_mouse_button_pressed(MouseButton::Left) {
-            return Some(PlayerEvent::MouseLeft(
-                mouse_position().0,
-                mouse_position().1)
-            )
-        }
-    
-        if is_mouse_button_pressed(MouseButton::Right) {
-                return Some(PlayerEvent::MouseRight(
-                    mouse_position().0,
-                    mouse_position().1)
-                )
-        }
-        None
-    }
-    
-    pub fn get_server_data(&mut self)->&ServerData {
-        if let Ok(t) = self.r_in.try_recv(){
-            self.last_data = t;
-        }
-        &self.last_data
-    }
-    
     pub fn get_game_state(&mut self) -> &ServerData {
         
         // TODO: hvis de ikke er perfekt synca, vil channel fylle seg opp?
         
         if let Ok(data) = self.r_in.try_recv(){
+            
             self.last_data = data;
         }
 
@@ -339,7 +299,7 @@ impl<ServerData> Kjetil<ServerData> where ServerData: Serialize + DeserializeOwn
     pub fn send_game_state(& self, state: & ServerData){
         
         for i in self.connections.iter(){
-            i.sender_game_state.send((*state).clone()).unwrap();
+            i.sender_game_state.send(state.clone()).unwrap();
         }
     }
 }
