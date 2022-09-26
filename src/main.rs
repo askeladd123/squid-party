@@ -15,6 +15,7 @@ use common::input;
 use player::Player;
 use crate::common::MenuMode;
 use crate::network::{Client, Keys, PlayerEvent, Kjetil, Waiter};
+use crate::PlayerEvent::Released;
 
 // TODO flytte kode ut i andre filer (så man kan samarbeide)
 
@@ -61,7 +62,6 @@ async fn main() {
                 loop {
                     match client.get_game_state() {
                         ServerEvent::Lobby(_) => {
-                            
                             let mut lobby_data = lobby::Data::new();
                             
                             while let ServerEvent::Lobby(ref data) = client.get_game_state() {
@@ -181,7 +181,6 @@ fn server_loop(server_data: &mut network::Kjetil<ServerEvent>) {
     loop {
         match mode {
             ServerEvent::Lobby(_) => {
-                
                 let mut lobby_data = lobby::State::new();
                 println!("lobby data init mode");
                 
@@ -205,7 +204,6 @@ fn server_loop(server_data: &mut network::Kjetil<ServerEvent>) {
 fn input_macroquad() -> Option<network::PlayerEvent> {
     // flere keys kan trykkes samtidig
     if let Some(k) = get_last_key_pressed() {
-        
         use PlayerEvent::*;
         use network::Keys::*;
         return Some(match k {
@@ -219,8 +217,16 @@ fn input_macroquad() -> Option<network::PlayerEvent> {
             KeyCode::D => Pressed(D),
             KeyCode::Space => Pressed(Space),
             _ => PlayerEvent::Unknown,
-        })
+        });
     }
+    
+    use PlayerEvent::*;
+    use network::Keys::*;
+    
+    if is_key_released(KeyCode::Up) { return Some(Released(Up)); }
+    if is_key_released(KeyCode::Down) { return Some(Released(Down)); }
+    if is_key_released(KeyCode::Left) { return Some(Released(Left)); }
+    if is_key_released(KeyCode::Right) { return Some(Released(Right)); }
     
     // TODO: musen deserialisere ikke ellerno
     // if is_mouse_button_pressed(MouseButton::Left) {

@@ -19,6 +19,8 @@ use crate::network::Mode::Platform1;
 
 const PORT: &str = "55555";
 
+// TODO: hvis client og server fps ikke er synca vil vel buffer fylle seg opp
+
 pub struct Waiter<ServerData: Default + Serialize + DeserializeOwned + Send + 'static> {
     r_stream: Receiver<TcpStream>,
     t_waiter: JoinHandle<()>,
@@ -198,11 +200,11 @@ impl<ServerData> Kjetil<ServerData> where ServerData: Serialize + DeserializeOwn
         // oppdater data til api-objektet "player_inputs:PlayerInput"
         for (connection, player)
         in self.connections.iter_mut().zip(self.player_inputs.iter_mut()) {
-            player.events.clear();
+            player.buffer.clear();
             
             while let Some(t) = connection.receive() {
-                println!("server got input: {t:?}");
-                player.events.push(t);
+                
+                player.buffer.push(t);
             }
         }
         
@@ -285,7 +287,7 @@ impl<T> Drop for Connection<T> where T: Serialize + DeserializeOwned + Send + 's
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum Keys {
     Up,
     Down,
@@ -310,35 +312,61 @@ pub enum PlayerEvent {
 }
 
 pub struct PlayerInput {
-    events: Vec<PlayerEvent>,
+    buffer: Vec<PlayerEvent>, // TODO: dette burde kanskje være en queue
+    downs: HashMap<Keys, bool>,
 }
 
 impl PlayerInput {
     fn new() -> PlayerInput {
         PlayerInput {
-            events: Vec::new(),
+            buffer: Vec::new(),
+            downs: HashMap::new(),
         }
     }
     
-    pub fn key_pressed(&mut self, key_code: Keys) -> bool {
-        
-        self.events.retain(|x| matches!(x, PlayerEvent::Pressed(key_code)));
-        
-        let mut index: Option<usize> = None;
-        
-        for (i, event) in self.events.iter().enumerate() {
-            if matches!(event, PlayerEvent::Pressed(key_code)) {
-                index = Some(i);
-                break;
+    fn update_map(&mut self) {
+        self.buffer.retain(|x|{
+            
+            match x{
+                PlayerEvent::Pressed(k)=>{self.downs.insert(*k, true);},
+                PlayerEvent::Released(k)=>{self.downs.insert(*k, false);},
+                _=>{}
             }
-        }
-        
-        if let Some(i) = index {
-            self.events.remove(i);
-            return true;
-        }
-        false
+            false
+        });
     }
+    
+    pub fn key_is_down(&mut self, key_code: Keys) -> bool {
+        
+        self.update_map();
+        
+        match self.downs.get(&key_code){
+            Some(t)=>*t,
+            None=>false
+        }
+    }
+    
+    // pub fn key_pressed(&mut self, key_code: Keys) -> bool {
+    //
+    //     println!("{:?}", self.buffer);
+    //
+    //     self.buffer.retain(|x| matches!(x, PlayerEvent::Pressed(key_code)));
+    //
+    //     let mut index: Option<usize> = None;
+    //
+    //     for (i, event) in self.buffer.iter().enumerate() {
+    //         if matches!(event, PlayerEvent::Pressed(key_code)) {
+    //             index = Some(i);
+    //             break;
+    //         }
+    //     }
+    //
+    //     if let Some(i) = index {
+    //         self.buffer.remove(i);
+    //         return true;
+    //     }
+    //     false
+    // }
 }
 
 #[derive(PartialEq)]

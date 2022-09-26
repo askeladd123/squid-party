@@ -93,33 +93,23 @@ pub fn server(player_inputs: &mut Vec<PlayerInput>, state: &mut State){
         // Trykkes OPP knappen vil x fart stoppe og spiller y pos gå TIL OPPOVER i skjermen.
         // x pos STOP
         // y pos -
-        if input.key_pressed(network::Keys::Up){
+        if input.key_is_down(network::Keys::Up){
             player.speed.x = 0.0;
             player.speed.y = -PLAYER_SPEED;
         }
-
-        // if is_key_pressed(KeyCode::Up){
-        //     state.players[0].speed.x = 0.0;
-        //     state.players[0].speed.y = -PLAYER_SPEED;
-        // }
         
         // Trykkes NED knappen vil x fart stoppe og spiller y pos gå TIL NEDOVER  i skjermen.
         // x pos STOP
         // y pos +
-        if input.key_pressed(network::Keys::Down){
+        else if input.key_is_down(network::Keys::Down){
             player.speed.x = 0.0;
             player.speed.y = PLAYER_SPEED;
         }
-        
-        // if is_key_pressed(KeyCode::Down){
-        //     state.players[0].speed.x = 0.0;
-        //     state.players[0].speed.y = PLAYER_SPEED;
-        // }
     
         // Trykkes VENSTRE knappen vil y fart stoppe og spiller x pos gå TIL VENSTRE i skjermen.
         // x pos -
         // y pos STOP
-        if input.key_pressed(network::Keys::Left){
+        else if input.key_is_down(network::Keys::Left){
             player.speed.x = -PLAYER_SPEED;
             player.speed.y = 0.0;
         }
@@ -132,8 +122,13 @@ pub fn server(player_inputs: &mut Vec<PlayerInput>, state: &mut State){
         // Trykkes HØYRE knappen vil y fart stoppe og spiller x pos gå TIL HØYRE i skjermen.
         // x pos +
         // y pos STOP
-        if input.key_pressed(network::Keys::Right){
+        else if input.key_is_down(network::Keys::Right){
             player.speed.x = PLAYER_SPEED;
+            player.speed.y = 0.0;
+        }
+        
+        else {
+            player.speed.x = 0.0;
             player.speed.y = 0.0;
         }
         
