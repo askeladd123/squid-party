@@ -1,3 +1,4 @@
+use std::net::Ipv4Addr;
 use macroquad::input::{is_key_pressed, is_key_released};
 use crate::{common, KeyCode};
 
@@ -32,5 +33,6 @@ impl Data {
 #[derive(PartialEq)]
 /// Denne enum forteller hvilket vindu man er i akkurat nå
 pub enum MenuMode {
-    Main, SinglePlayer, MultiPlayer, Join, Host, Options, Quit,
+    Main, Multiplayer, SinglePlayer,
+    Joining, Joined{host:Ipv4Addr, port:u16}, Host, Options, Quit,
 }

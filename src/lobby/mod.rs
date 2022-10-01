@@ -1,3 +1,4 @@
+use local_ip_address::local_ip;
 use macroquad::prelude::*;
 use crate::player::Player;
 use crate::{common, network};
@@ -173,4 +174,6 @@ pub fn client(
     }
     // Tegner teppet på skjermen
     draw_rectangle(TEPPE, 0.0, 400.0, 800.0, DARKBLUE);
+    
+    draw_text(local_ip().unwrap().to_string().as_str(), 24.0, 24.0, 40.0, WHITE);
 }

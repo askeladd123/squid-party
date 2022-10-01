@@ -86,7 +86,10 @@ pub struct Client<ServerData: Serialize + DeserializeOwned> {
 
 impl<ServerData> Client<ServerData>
     where ServerData: Serialize + DeserializeOwned + Default + Send + 'static {
-    pub fn connect(ip: &str)-> Waiter<ServerData> {
+    pub fn connect_to(ip: &str) -> Waiter<ServerData> {
+    
+        // TODO: bytte param:ip til std::net::IpAddrV4
+    
         // connect to server
         let ip = chain(ip, ":", PORT);
         let (sender, receiver) = mpsc::channel();
@@ -137,6 +140,8 @@ impl<ServerData> Client<ServerData>
 
 pub fn start_server<T>(ip: &str, server_loop: fn(&mut Kjetil<T>))
                              where T: Serialize + DeserializeOwned + Send + 'static {
+    
+    // TODO: bytte param:ip til std::net::IpAddrV4
     
     // åpne forbindelse
     let listener = TcpListener::bind(
@@ -283,7 +288,7 @@ impl<T> Connection<T> where T: Serialize + DeserializeOwned + Send + 'static {
 
 impl<T> Drop for Connection<T> where T: Serialize + DeserializeOwned + Send + 'static {
     fn drop(&mut self) {
-        todo!()
+        todo!() // lukke threads
     }
 }
 
