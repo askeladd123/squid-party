@@ -45,7 +45,7 @@ async fn main() {
                 common_data.mode = MenuMode::Multiplayer;
                 
                 // init
-                network::start_server("localhost", server_loop);
+                network::start_server("localhost", server_loop).unwrap();
     
                 let mut waiter = network::Client::<ServerEvent>::connect_to("localhost");
                 let mut client = loop {
@@ -142,7 +142,7 @@ async fn main() {
                 
                 let ip = local_ip().unwrap().to_string();
                 
-                network::start_server(ip.as_str(), server_loop);
+                network::start_server(ip.as_str(), server_loop).unwrap();
     
                 let mut waiter = network::Client::<ServerEvent>::connect_to(ip.as_str());
                 let mut client = loop {

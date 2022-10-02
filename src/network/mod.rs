@@ -100,7 +100,6 @@ impl<ServerData> Client<ServerData>
                     sender_clone.send(stream).unwrap();
                     break;
                 }
-                println!("client waiter couldn't find connection... trying again");
                 thread::sleep(Duration::from_secs(3));
             }
         ).unwrap();
@@ -138,20 +137,37 @@ impl<ServerData> Client<ServerData>
     }
 }
 
-pub fn start_server<T>(ip: &str, server_loop: fn(&mut Kjetil<T>))
+#[derive(Debug)]
+pub enum ServerErr{
+    Opening(String, Box<dyn std::error::Error>),
+    
+}
+
+impl std::fmt::Display for ServerErr{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ServerErr::Opening(ip, err) =>
+                write!(f, "could not open server on {ip}, internal error: {err}")
+        }
+    }
+}
+
+impl std::error::Error for ServerErr{
+
+}
+
+pub fn start_server<T>(ip: &str, server_loop: fn(&mut Kjetil<T>))->Result<(), ServerErr>
                              where T: Serialize + DeserializeOwned + Send + 'static {
     
     // TODO: bytte param:ip til std::net::IpAddrV4
     
+    let full_ip = chain(ip, ":", PORT);
+    
     // åpne forbindelse
-    let listener = TcpListener::bind(
-        chain(
-            ip,
-            ":",
-            PORT,
-        )
-    ).unwrap();
-    println!("server port open");
+    let listener = match TcpListener::bind(full_ip){
+        Ok(t)=>t,
+        Err(e)=> return Err(ServerErr::Opening(ip.to_string(), e.into())),
+    };
     
     thread::Builder::new().name("server, loop".to_string()).spawn(move || {
         
@@ -160,11 +176,6 @@ pub fn start_server<T>(ip: &str, server_loop: fn(&mut Kjetil<T>))
         thread::Builder::new().name("server, listener".to_string()).spawn(move || {
             for stream in listener.incoming() {
                 let s = stream.unwrap();
-                println!(
-                    "server listener found connection: \n\tfrom {}\n\tto {}",
-                         s.local_addr().unwrap(),
-                        s.peer_addr().unwrap(),
-                );
                 s_stream.send(s).expect("server listener: receiver was disconnected");
             }
         }).unwrap();
@@ -176,7 +187,9 @@ pub fn start_server<T>(ip: &str, server_loop: fn(&mut Kjetil<T>))
         };
         
         server_loop(&mut server_data);
-    }).unwrap();
+    }).expect("server could not start thread, not enough system resources?");
+    
+    Ok(())
 }
 
 pub struct Kjetil<ServerData: Serialize + DeserializeOwned + Send + 'static> {
