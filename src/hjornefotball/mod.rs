@@ -2,6 +2,10 @@ use macroquad::prelude::*;
 use crate::common;
 use crate::common::input;
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct State{
+}
+
 pub struct Data{
     pos_x: f32, // x posisjonen til ballen
     pos_y: f32, // y posisjonen til ballen

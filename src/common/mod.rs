@@ -1,3 +1,4 @@
+use std::net::Ipv4Addr;
 use macroquad::input::{is_key_pressed, is_key_released};
 use crate::{common, KeyCode};
 
@@ -6,7 +7,7 @@ pub mod settings;
 pub mod input;
 
 pub struct Data{
-    pub mode: Mode,
+    pub mode: MenuMode,
     pub player_id: usize,
     pub settings: settings::Data,
     pub mouse_and_keys: input::MouseAndKeys,
@@ -17,7 +18,7 @@ pub struct Data{
 impl Data {
     pub fn new(files: files::Data) -> Data {
         Data {
-            mode: Mode::Menu,
+            mode: MenuMode::Main,
             player_id: 0,
             settings: settings::Data {
                 player_speed: 1.0,
@@ -30,7 +31,8 @@ impl Data {
 }
 
 #[derive(PartialEq)]
-// Denne enum forteller hvilket vindu man er i akkurat nå
-pub enum Mode {
-    Menu, Lobby, Platform1, Quit, Hjornefotball
+/// Denne enum forteller hvilket vindu man er i akkurat nå
+pub enum MenuMode {
+    Main, Multiplayer, SinglePlayer,
+    Joining, Joined{host:Ipv4Addr, port:u16}, Host, Options, Quit,
 }

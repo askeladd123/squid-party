@@ -1,5 +1,10 @@
 use macroquad::prelude::*;
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct State{
+
+}
+
 pub struct Data{
 
 }
