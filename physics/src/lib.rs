@@ -208,6 +208,16 @@ pub fn intersection(a: impl Shape, b: impl Shape) ->bool{
 
             //println!("c1 {} {}",corners_tl.0, corners_tl.1);
 
+            if r.a == 0.0 || r.a == 90.0 || r.a == 180.0 || r.a == 270.0{
+                if r.a == 0.0 || r.a == 180.0{
+                    let square = AABB(physics::AABB{center:Vec2d{x:r.center.x, y:r.center.y}, rx:r.rx, ry:r.ry});
+                    return intersection(square, a)
+                }else if r.a == 90.0 || r.a == 270.0{
+                    let square = AABB(physics::AABB{center:Vec2d{x:r.center.x, y:r.center.y}, rx:r.ry, ry:r.rx});
+                    return intersection(square, a)
+                }
+            }
+
             corners_tl = rotation_fun(r, corners_tl);
             corners_bl = rotation_fun(r, corners_bl);
             corners_tr = rotation_fun(r, corners_tr);

@@ -72,7 +72,7 @@ pub mod main{
         use physics::*;
         
         let a = AABB{center:Vec2d{x:30.0, y:120.0}, rx:40.0, ry:50.0};
-        let r = Rect{center:Vec2d{x:30.0, y:300.0}, rx:150.0, ry:50.0, a: 33.33};
+        let r = Rect{center:Vec2d{x:30.0, y:300.0}, rx:150.0, ry:50.0, a: 0.0};
         let c1 = Circle{center:Vec2d{x:20.0, y:500.0}, r:50.0};
         let p = Vec2d::from(mouse_position());
         let c2 = Circle{center:p, r:20.0};
