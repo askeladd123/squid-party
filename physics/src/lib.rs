@@ -8,6 +8,10 @@
 
 pub trait Shape{
     fn get_shape(& self)->Shapes;
+    
+    fn intersects(& self, shape:impl Shape)->bool{
+        intersection(self.get_shape(), shape)
+    }
 }
 
 #[derive(Copy, Clone)]
